@@ -48,7 +48,7 @@ Pytania poboczne: Jacy politycy są najbardziej zgodni? Czy pokrywa się to z pa
 - Węzły-huby: miejscowości z wieloma posłami różnych partii vs monopartyjne
 
 ---
- 
+
 ### 3. Wykształcenie polityków
 
 **Pytanie:** Jakie wykształcenie mają politycy? Czy koreluje to z przynależnością partyjną?
