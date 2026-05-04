@@ -92,6 +92,11 @@ def build_vote_matrix(
 
     mapped = (
         valid_votes
+        .with_columns([
+            pl.col("vote").cast(pl.Utf8),
+            pl.col("voting_key").cast(pl.Utf8),
+            pl.col("mp_id").cast(pl.Int32),
+        ])
         .join(vkey_map, on="voting_key", how="inner")
         .join(mp_map, on="mp_id", how="inner")
         .join(vote_enc_map, on="vote", how="inner")

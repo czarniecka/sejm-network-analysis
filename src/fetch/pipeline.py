@@ -272,7 +272,7 @@ def assemble_parquet(term: int) -> None:
                     vt_sittings.append(sitting)
                     vt_nums.append(voting_num)
                     vt_dates.append(date_only)
-                    vt_mp_ids.append(v.get("mpCredentialNumber"))
+                    vt_mp_ids.append(v.get("MP"))
                     vt_clubs.append(v.get("club") or "")
                     vt_votes.append(v.get("vote") or "ABSENT")
                     vt_terms.append(term)

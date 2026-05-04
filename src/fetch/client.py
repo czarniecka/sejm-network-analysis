@@ -28,6 +28,8 @@ async def fetch_json(
                 async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
                     if resp.status == 200:
                         raw = await resp.read()
+                        if not raw:
+                            return None
                         return orjson.loads(raw)
                     if resp.status in (429, 503):
                         wait = RETRY_BASE_DELAY * (2 ** attempt)
@@ -88,20 +90,10 @@ async def fetch_mps(
     semaphore: asyncio.Semaphore,
     term: int,
 ) -> list[dict[str, Any]]:
-    """Fetch all MPs for a term (handles pagination automatically)."""
-    all_mps: list[dict[str, Any]] = []
-    offset = 0
-    limit = 200
-    while True:
-        url = f"{BASE_URL}/sejm/term{term}/MP?limit={limit}&offset={offset}"
-        data = await fetch_json(session, url, semaphore)
-        if not data:
-            break
-        all_mps.extend(data)
-        if len(data) < limit:
-            break
-        offset += limit
-    return all_mps
+    """Fetch all MPs for a term."""
+    url = f"{BASE_URL}/sejm/term{term}/MP"
+    data = await fetch_json(session, url, semaphore)
+    return data or []
 
 
 async def fetch_clubs(

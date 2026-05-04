@@ -16,6 +16,7 @@ from pathlib import Path
 
 import click
 import numpy as np
+import polars as pl
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -55,7 +56,7 @@ def main(term: int) -> None:
     print(
         cohesion_df
         .group_by("club")
-        .agg(cohesion_score=("cohesion_score", "mean"))
+        .agg(pl.col("cohesion_score").mean())
         .sort("cohesion_score", descending=True)
     )
 
