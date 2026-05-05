@@ -3,4 +3,4 @@
 data/analysis/*
 data/parquet/*
 data/raw/*
-data/network/*
+data/networks/*
