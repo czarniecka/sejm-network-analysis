@@ -1,6 +1,6 @@
 .venv
 **__pycache__
-data/analysis/*
-data/parquet/*
+# data/analysis/*
+# data/parquet/*
 data/raw/*
-data/networks/*
+# data/networks/*
