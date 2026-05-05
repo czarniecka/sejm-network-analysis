@@ -48,7 +48,7 @@ EXCLUDED_VOTES = {"ABSENT", "VOTE_VALID"}
 # Agreement matrix parameters
 # ---------------------------------------------------------------------------
 MIN_COPRESENCE = 50           # minimum shared votings to include an MP pair
-AGREEMENT_THRESHOLDS = [0.30, 0.50, 0.70, 0.90]
+AGREEMENT_THRESHOLDS = [0.30, 0.50, 0.70, 0.90, 0.99]
 
 # ---------------------------------------------------------------------------
 # Temporal analysis

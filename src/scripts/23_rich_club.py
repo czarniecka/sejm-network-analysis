@@ -27,27 +27,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import ANALYSIS_DIR, NETWORKS_DIR, PROJECT_ROOT
 from src.data.store import load_mps
 from src.analysis.network import adjacency_to_networkx
+from src.scripts.poster_style import apply_style, CLUB_COLOURS, cc, MAIN_CLUBS, PALETTE, COALITION, OPPOSITION, club_en
+
+apply_style()
 
 FIG_DIR = PROJECT_ROOT / "data" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
-
-BG    = "#FAFAFA"; BG2  = "#FFFFFF"; RED  = "#C0392B"; RED2 = "#E74C3C"
-DARK  = "#1a1a1a"; GREY = "#757575"; GRID = "#E0E0E0"
-
-CLUB_COLOURS = {
-    "KO": "#E8C4C4", "PiS": "#8B0000", "PSL-TD": "#C0392B",
-    "Lewica": "#FF5252", "Polska2050": "#FF8C69", "Polska2050-TD": "#FFAB91",
-    "Konfederacja": "#5D0000", "Konfederacja_KP": "#7A0000",
-    "Razem": "#FF7675", "PSL": "#D4826B", "Centrum": "#F0A090",
-    "niez.": "#777777", "Demokracja": "#B05050",
-}
-MAIN_CLUBS = ["KO", "PiS", "PSL-TD", "Lewica", "Polska2050-TD", "Konfederacja", "Razem"]
-
-mpl.rcParams.update({
-    "figure.facecolor": BG, "axes.facecolor": BG2, "axes.edgecolor": "#CCCCCC",
-    "axes.labelcolor": DARK, "text.color": DARK, "xtick.color": DARK, "ytick.color": DARK,
-    "grid.color": GRID, "grid.linewidth": 0.6, "font.family": "sans-serif", "font.size": 11,
-})
 
 THRESHOLD = 0.70
 MIN_COP   = 50
@@ -157,37 +142,37 @@ def fig29_rich_club(rc_obs, rc_rand, rc_norm, sw: dict) -> None:
     ks_obs  = sorted(k for k in rc_obs  if not np.isnan(rc_obs[k]))
     ks_norm = sorted(k for k in rc_norm if not np.isnan(rc_norm[k]))
 
-    fig = plt.figure(figsize=(14, 6.5), facecolor=BG)
+    fig = plt.figure(figsize=(14, 6.5), facecolor="white")
     gs  = gridspec.GridSpec(1, 2, figure=fig, wspace=0.38)
 
     ax1 = fig.add_subplot(gs[0])
-    ax1.set_facecolor(BG2)
-    ax1.plot(ks_obs, [rc_obs[k]  for k in ks_obs], color=RED, linewidth=2.5,
-             label="Obserwowane φ(k)", zorder=3)
+    ax1.set_facecolor("white")
+    ax1.plot(ks_obs, [rc_obs[k]  for k in ks_obs], color=PALETTE["accent"], linewidth=2.5,
+             label="Observed φ(k)", zorder=3)
     ks_r = sorted(k for k in rc_rand if not np.isnan(rc_rand.get(k, np.nan)))
-    ax1.plot(ks_r,   [rc_rand[k] for k in ks_r],   color=GREY, linewidth=2.0,
-             linestyle="--", label="Losowe φ(k) (null model)", zorder=2)
+    ax1.plot(ks_r,   [rc_rand[k] for k in ks_r],   color=PALETTE["neutral"], linewidth=2.0,
+             linestyle="--", label="Random φ(k) (null model)", zorder=2)
     ax1.fill_between(ks_obs, [rc_obs[k] for k in ks_obs],
                      [rc_rand.get(k, np.nan) for k in ks_obs],
-                     alpha=0.15, color=RED, label="Nadwyżka rich-club")
-    ax1.set_xlabel("Stopień k (minimalna liczba sąsiadów)", fontsize=10)
+                     alpha=0.15, color=PALETTE["accent"], label="Rich-club surplus")
+    ax1.set_xlabel("Degree k (minimum number of neighbours)", fontsize=10)
     ax1.set_ylabel("φ(k) — rich-club coefficient", fontsize=10)
-    ax1.set_title(f"Rich-club coefficient obserwowany vs losowy\n(próg {THRESHOLD:.0%})", fontsize=12)
+    ax1.set_title(f"Rich-club coefficient: observed vs random\n(threshold {THRESHOLD:.0%})", fontsize=12)
     ax1.legend(fontsize=9, framealpha=0.5)
     ax1.grid(alpha=0.25); ax1.spines[["top", "right"]].set_visible(False)
 
     ax2 = fig.add_subplot(gs[1])
-    ax2.set_facecolor(BG2)
-    ax2.plot(ks_norm, [rc_norm[k] for k in ks_norm], color=RED, linewidth=2.5,
+    ax2.set_facecolor("white")
+    ax2.plot(ks_norm, [rc_norm[k] for k in ks_norm], color=PALETTE["accent"], linewidth=2.5,
              marker="o", markersize=3.5)
-    ax2.axhline(1.0, color=GREY, linewidth=1.2, linestyle="--", alpha=0.7,
-                label="φ_norm = 1  (jak losowy)")
+    ax2.axhline(1.0, color=PALETTE["neutral"], linewidth=1.2, linestyle="--", alpha=0.7,
+                label="φ_norm = 1  (same as random)")
     ax2.fill_between(ks_norm, 1, [rc_norm[k] for k in ks_norm],
                      where=[rc_norm[k] > 1 for k in ks_norm],
-                     alpha=0.15, color=RED, label="Rich-club efekt")
-    ax2.set_xlabel("Stopień k", fontsize=10)
+                     alpha=0.15, color=PALETTE["accent"], label="Rich-club effect")
+    ax2.set_xlabel("Degree k", fontsize=10)
     ax2.set_ylabel("φ_norm(k) = φ_obs / φ_rand", fontsize=10)
-    ax2.set_title("Znormalizowany rich-club coefficient\n(> 1 = efekt rich-club)", fontsize=12)
+    ax2.set_title("Normalised rich-club coefficient\n(> 1 = rich-club effect)", fontsize=12)
     ax2.legend(fontsize=9, framealpha=0.5)
     ax2.grid(alpha=0.25); ax2.spines[["top", "right"]].set_visible(False)
 
@@ -196,16 +181,16 @@ def fig29_rich_club(rc_obs, rc_rand, rc_norm, sw: dict) -> None:
                f"  C = {sw['C_observed']:.3f}  (C_rand = {sw['C_random']:.3f})\n"
                f"  L = {sw['L_observed']:.3f}  (L_rand = {sw['L_random']:.3f})\n"
                f"  C/C_rand = {sw['C_ratio']:.2f}   L/L_rand = {sw['L_ratio']:.2f}\n"
-               f"  σ = {sw['sigma']:.2f}  {'→ SMALL-WORLD' if sw['sigma'] > 1 else '→ nie small-world'}")
+               f"  σ = {sw['sigma']:.2f}  {'→ SMALL-WORLD' if sw['sigma'] > 1 else '→ not small-world'}")
     ax2.text(0.97, 0.05, sw_text, transform=ax2.transAxes, ha="right", va="bottom",
-             fontsize=8.5, color=DARK, bbox=dict(boxstyle="round", facecolor=BG2,
-             edgecolor=GRID, alpha=0.85))
+             fontsize=8.5, color=PALETTE["dark"], bbox=dict(boxstyle="round", facecolor="white",
+             edgecolor=PALETTE["light_grey"], alpha=0.85))
 
-    fig.suptitle("Rich-club phenomenon + small-world test  |  Kadencja X",
-                 fontsize=14, color=DARK, y=1.01)
+    fig.suptitle("Rich-club phenomenon + small-world test  |  Term X",
+                 fontsize=14, color=PALETTE["dark"], y=1.01)
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig29_rich_club.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 
@@ -231,31 +216,31 @@ def fig30_rich_club_members(G, rc_norm: dict) -> None:
     top_n = min(40, len(rich_data))
     top_df= rich_df.head(top_n)
 
-    fig, axes = plt.subplots(1, 2, figsize=(15, max(7, top_n * 0.22 + 2)), facecolor=BG)
+    fig, axes = plt.subplots(1, 2, figsize=(15, max(7, top_n * 0.22 + 2)), facecolor="white")
     fig.suptitle(
-        f"Członkowie Rich Club (stopień ≥ {k_star})  |  {len(rich_nodes)} posłów  |  Kadencja X",
-        fontsize=14, color=DARK, y=1.01,
+        f"Rich Club members (degree ≥ {k_star})  |  {len(rich_nodes)} MPs  |  Term X",
+        fontsize=14, color=PALETTE["dark"], y=1.01,
     )
 
     ax1 = axes[0]
-    ax1.set_facecolor(BG2)
+    ax1.set_facecolor("white")
     names   = top_df["name"].to_list()
     degs    = top_df["degree"].to_numpy()
     clubs_t = top_df["club"].to_list()
-    cols    = [CLUB_COLOURS.get(c, GREY) for c in clubs_t]
+    cols    = [cc(c) for c in clubs_t]
     y       = np.arange(len(names))
     ax1.barh(y, degs, color=cols, alpha=0.85, edgecolor="#333", linewidth=0.4, height=0.7)
     for i, d in enumerate(degs):
         ax1.text(d + 1, i, str(d), va="center", fontsize=8)
     ax1.set_yticks(y); ax1.set_yticklabels([f"{n}  [{c}]" for n, c in zip(names, clubs_t)],
                                             fontsize=8)
-    ax1.set_xlabel("Stopień węzła (liczba sąsiadów)", fontsize=10)
-    ax1.set_title(f"Top {top_n} posłów wg stopnia węzła", fontsize=11)
+    ax1.set_xlabel("Node degree (number of neighbours)", fontsize=10)
+    ax1.set_title(f"Top {top_n} MPs by node degree", fontsize=11)
     ax1.invert_yaxis()
     ax1.grid(axis="x", alpha=0.3); ax1.spines[["top", "right"]].set_visible(False)
 
     ax2 = axes[1]
-    ax2.set_facecolor(BG2)
+    ax2.set_facecolor("white")
     club_counts = (rich_df.filter(pl.col("club").is_in(MAIN_CLUBS))
                    .group_by("club").agg(pl.len().alias("n_rich"))
                    .sort("n_rich", descending=True))
@@ -263,27 +248,27 @@ def fig30_rich_club_members(G, rc_norm: dict) -> None:
                                   for n in G.nodes()])
                    .filter(pl.col("club").is_in(MAIN_CLUBS))
                    .group_by("club").agg(pl.len().alias("total")))
-    cc = club_counts.join(total_club, on="club", how="left").with_columns(
+    club_frac = club_counts.join(total_club, on="club", how="left").with_columns(
         (pl.col("n_rich") / pl.col("total")).alias("frac")
     ).sort("frac", descending=True)
-    clubs_c = cc["club"].to_list()
-    fracs_c = cc["frac"].to_numpy()
-    ns_c    = cc["n_rich"].to_list()
+    clubs_c = club_frac["club"].to_list()
+    fracs_c = club_frac["frac"].to_numpy()
+    ns_c    = club_frac["n_rich"].to_list()
     y2      = np.arange(len(clubs_c))
-    cols2   = [CLUB_COLOURS.get(c, GREY) for c in clubs_c]
+    cols2   = [cc(c) for c in clubs_c]
     ax2.barh(y2, fracs_c, color=cols2, alpha=0.85, edgecolor="#333", linewidth=0.4, height=0.65)
     for i, (f, n) in enumerate(zip(fracs_c, ns_c)):
         ax2.text(f + 0.01, i, f"{f:.0%}  (n={n})", va="center", fontsize=9)
     ax2.set_yticks(y2); ax2.set_yticklabels(clubs_c, fontsize=9.5)
     ax2.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=1))
-    ax2.set_xlabel("Odsetek posłów klubu w rich club", fontsize=10)
-    ax2.set_title(f"Skład klubowy rich club (stopień ≥ {k_star})", fontsize=11)
+    ax2.set_xlabel("Share of club MPs in rich club", fontsize=10)
+    ax2.set_title(f"Club composition of rich club (degree ≥ {k_star})", fontsize=11)
     ax2.set_xlim(0, 1.15)
     ax2.grid(axis="x", alpha=0.3); ax2.spines[["top", "right"]].set_visible(False)
 
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig30_rich_club_members.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 

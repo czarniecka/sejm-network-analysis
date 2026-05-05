@@ -30,41 +30,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import ANALYSIS_DIR
 FIGURES_DIR = Path(__file__).parent.parent.parent / "data" / "figures"
 from src.data.store import load_mps
+from src.scripts.poster_style import apply_style, CLUB_COLOURS, cc, MAIN_CLUBS, PALETTE, COALITION, OPPOSITION, club_en
+
+apply_style()
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s — %(message)s")
 logger = logging.getLogger(__name__)
-
-mpl.rcParams.update({
-    "font.family": "DejaVu Sans",
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-})
-
-# ── colour constants ────────────────────────────────────────────────────────
-BG       = "#FAFAFA"
-BG2      = "#FFFFFF"
-RED      = "#C0392B"
-RED2     = "#E74C3C"
-RED_PALE = "#FFCDD2"
-DARK     = "#1a1a1a"
-GREY     = "#9E9E9E"
-GRIDCOL  = "#E0E0E0"
-
-CLUB_COLORS = {
-    "KO":              "#C0392B",
-    "PSL-TD":          "#E57373",
-    "Lewica":          "#EF9A9A",
-    "Razem":           "#FFCDD2",
-    "Polska2050":      "#B71C1C",
-    "Polska2050-TD":   "#D32F2F",
-    "PiS":             "#37474F",
-    "Konfederacja":    "#546E7A",
-    "Konfederacja_KP": "#607D8B",
-    "Centrum":         "#90A4AE",
-    "Demokracja":      "#B0BEC5",
-    "niezrzeszony":    "#CFD8DC",
-    "niez.":           "#CFD8DC",
-}
 
 # Electoral district → voivodeship mapping
 DISTRICT_TO_VOIV = {
@@ -149,7 +120,7 @@ BIRTH_CITY_VOIV = {
     "Ryki": "lubelskie", "Rypin": "kujawsko-pomorskie", "Rzeki Wielkie": "małopolskie",
     "Rzeszów": "podkarpackie", "Rzążew": "mazowieckie", "Sanok": "podkarpackie",
     "Sawice": "lubelskie", "Sawin": "lubelskie", "Siedlce": "mazowieckie",
-    "Siedlików": "łódzkie", "Siedliszcze": "lubelskie", "Sielc": "mazowieckie",
+    "Siedlków": "łódzkie", "Siedliszcze": "lubelskie", "Sielc": "mazowieckie",
     "Siemiatycze": "podlaskie", "Sieradz": "łódzkie", "Skarżysko-Kamienna": "świętokrzyskie",
     "Skała": "małopolskie", "Skierniewice": "łódzkie", "Skrwilno": "kujawsko-pomorskie",
     "Sochaczew": "mazowieckie", "Sopot": "pomorskie", "Sosnowiec": "śląskie",
@@ -187,11 +158,8 @@ VOIV_ORDER = [
     "małopolskie",
 ]
 
-# Simplified coalition labels
-COALITION = {"KO", "PSL-TD", "Lewica", "Razem", "Polska2050", "Polska2050-TD"}
-
 def coalition_label(club: str) -> str:
-    return "Koalicja" if club in COALITION else "Opozycja"
+    return "Coalition" if club in COALITION else "Opposition"
 
 
 # ── analysis ─────────────────────────────────────────────────────────────────
@@ -267,47 +235,47 @@ def fig7_birth_geography(geo_df: pl.DataFrame, mps_df: pl.DataFrame, out: Path) 
         .fill_null(0)
     )
     # Ensure both columns exist
-    for col in ("Koalicja", "Opozycja"):
+    for col in ("Coalition", "Opposition"):
         if col not in pivot.columns:
             pivot = pivot.with_columns(pl.lit(0).alias(col))
     pivot = pivot.with_columns(
-        (pl.col("Koalicja") + pl.col("Opozycja")).alias("total")
+        (pl.col("Coalition") + pl.col("Opposition")).alias("total")
     ).sort("total", descending=True)
 
     voivs  = pivot["birth_voiv"].to_list()
-    coal   = pivot["Koalicja"].to_list()
-    oppo   = pivot["Opozycja"].to_list()
+    coal   = pivot["Coalition"].to_list()
+    oppo   = pivot["Opposition"].to_list()
 
     # Also compute total births per voivodeship as % of 498
     n_total = len(mps_df)
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7), facecolor=BG)
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7), facecolor="white")
     fig.suptitle(
-        "Skąd pochodzą posłowie?  |  Kadencja X",
-        fontsize=16, fontweight="bold", color=DARK, y=0.98,
+        "Where are MPs from?  |  Term X",
+        fontsize=16, fontweight="bold", color=PALETTE["dark"], y=0.98,
     )
 
     # ── left: stacked bar ─────────────────────────────────────────────────────
     ax = axes[0]
-    ax.set_facecolor(BG2)
+    ax.set_facecolor("white")
     y = np.arange(len(voivs))
-    bars_c = ax.barh(y, coal, color=RED,  alpha=0.85, label="Koalicja")
-    bars_o = ax.barh(y, oppo, left=coal, color=GREY, alpha=0.70, label="Opozycja")
+    bars_c = ax.barh(y, coal, color=PALETTE["accent"],  alpha=0.85, label="Coalition")
+    bars_o = ax.barh(y, oppo, left=coal, color=PALETTE["neutral"], alpha=0.70, label="Opposition")
 
     ax.set_yticks(y)
-    ax.set_yticklabels(voivs, fontsize=9, color=DARK)
-    ax.set_xlabel("Liczba posłów", fontsize=10, color=DARK)
-    ax.set_title("Urodzenia wg województwa", fontsize=11, color=DARK)
-    ax.tick_params(colors=DARK)
-    ax.xaxis.set_tick_params(colors=DARK)
-    ax.spines["left"].set_color(GRIDCOL)
-    ax.spines["bottom"].set_color(GRIDCOL)
-    ax.grid(axis="x", color=GRIDCOL, linewidth=0.6)
-    ax.legend(fontsize=9, frameon=False, labelcolor=DARK)
+    ax.set_yticklabels(voivs, fontsize=9, color=PALETTE["dark"])
+    ax.set_xlabel("Number of MPs", fontsize=10, color=PALETTE["dark"])
+    ax.set_title("Births by voivodeship", fontsize=11, color=PALETTE["dark"])
+    ax.tick_params(colors=PALETTE["dark"])
+    ax.xaxis.set_tick_params(colors=PALETTE["dark"])
+    ax.spines["left"].set_color(PALETTE["light_grey"])
+    ax.spines["bottom"].set_color(PALETTE["light_grey"])
+    ax.grid(axis="x", color=PALETTE["light_grey"], linewidth=0.6)
+    ax.legend(fontsize=9, frameon=False, labelcolor=PALETTE["dark"])
 
     # ── right: top birth cities ───────────────────────────────────────────────
     ax2 = axes[1]
-    ax2.set_facecolor(BG2)
+    ax2.set_facecolor("white")
 
     city_df = (
         mps_df
@@ -331,22 +299,22 @@ def fig7_birth_geography(geo_df: pl.DataFrame, mps_df: pl.DataFrame, out: Path) 
             .sort("n", descending=True)
         )
         top_club = party_counts["club"].cast(pl.Utf8)[0] if len(party_counts) > 0 else ""
-        city_colors.append(CLUB_COLORS.get(top_club, GREY))
+        city_colors.append(cc(top_club))
 
     y2 = np.arange(len(cities))
     ax2.barh(y2, counts, color=city_colors, alpha=0.85)
     ax2.set_yticks(y2)
-    ax2.set_yticklabels(cities, fontsize=9, color=DARK)
-    ax2.set_xlabel("Liczba posłów", fontsize=10, color=DARK)
-    ax2.set_title("Top 20 miast urodzenia", fontsize=11, color=DARK)
-    ax2.tick_params(colors=DARK)
-    ax2.xaxis.set_tick_params(colors=DARK)
-    ax2.spines["left"].set_color(GRIDCOL)
-    ax2.spines["bottom"].set_color(GRIDCOL)
-    ax2.grid(axis="x", color=GRIDCOL, linewidth=0.6)
+    ax2.set_yticklabels(cities, fontsize=9, color=PALETTE["dark"])
+    ax2.set_xlabel("Number of MPs", fontsize=10, color=PALETTE["dark"])
+    ax2.set_title("Top 20 birth cities", fontsize=11, color=PALETTE["dark"])
+    ax2.tick_params(colors=PALETTE["dark"])
+    ax2.xaxis.set_tick_params(colors=PALETTE["dark"])
+    ax2.spines["left"].set_color(PALETTE["light_grey"])
+    ax2.spines["bottom"].set_color(PALETTE["light_grey"])
+    ax2.grid(axis="x", color=PALETTE["light_grey"], linewidth=0.6)
 
     plt.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     logger.info("Saved %s", out)
 
@@ -357,7 +325,7 @@ def fig8_education(edu_df: pl.DataFrame, mps_df: pl.DataFrame, out: Path) -> Non
     main_clubs = ["KO", "PiS", "PSL-TD", "Lewica", "Konfederacja", "Polska2050-TD"]
 
     edu_levels = ["wyższe", "średnie ogólne", "średnie zawodowe", "średnie policealne/pomaturalne"]
-    edu_short  = ["wyższe", "śr. ogólne", "śr. zawodowe", "śr. policealne"]
+    edu_short  = ["higher", "gen. secondary", "voc. secondary", "post-secondary"]
 
     # Build matrix: clubs × edu_levels (% within club)
     df_filt = (
@@ -376,16 +344,16 @@ def fig8_education(edu_df: pl.DataFrame, mps_df: pl.DataFrame, out: Path) -> Non
             row.append(100 * cnt / total if total > 0 else 0)
         matrix[club] = row
 
-    fig, ax = plt.subplots(figsize=(12, 5), facecolor=BG)
-    ax.set_facecolor(BG2)
+    fig, ax = plt.subplots(figsize=(12, 5), facecolor="white")
+    ax.set_facecolor("white")
     fig.suptitle(
-        "Wykształcenie posłów wg klubu  |  Kadencja X",
-        fontsize=15, fontweight="bold", color=DARK,
+        "MPs' education by party  |  Term X",
+        fontsize=15, fontweight="bold", color=PALETTE["dark"],
     )
 
     x = np.arange(len(main_clubs))
     width = 0.18
-    colors_edu = [RED, "#E57373", "#EF9A9A", RED_PALE]
+    colors_edu = [PALETTE["accent"], PALETTE["secondary"], PALETTE["primary"], PALETTE["light_grey"]]
     labels_edu = edu_short
 
     for i, (edu, color, label) in enumerate(zip(edu_levels, colors_edu, labels_edu)):
@@ -393,17 +361,17 @@ def fig8_education(edu_df: pl.DataFrame, mps_df: pl.DataFrame, out: Path) -> Non
         ax.bar(x + i * width, vals, width, label=label, color=color, alpha=0.85)
 
     ax.set_xticks(x + width * 1.5)
-    ax.set_xticklabels(main_clubs, fontsize=10, color=DARK)
-    ax.set_ylabel("Odsetek posłów w klubie [%]", fontsize=10, color=DARK)
-    ax.tick_params(colors=DARK)
-    ax.yaxis.set_tick_params(colors=DARK)
-    ax.grid(axis="y", color=GRIDCOL, linewidth=0.6)
-    ax.spines["left"].set_color(GRIDCOL)
-    ax.spines["bottom"].set_color(GRIDCOL)
-    ax.legend(fontsize=9, frameon=False, labelcolor=DARK)
+    ax.set_xticklabels(main_clubs, fontsize=10, color=PALETTE["dark"])
+    ax.set_ylabel("Share of MPs in club [%]", fontsize=10, color=PALETTE["dark"])
+    ax.tick_params(colors=PALETTE["dark"])
+    ax.yaxis.set_tick_params(colors=PALETTE["dark"])
+    ax.grid(axis="y", color=PALETTE["light_grey"], linewidth=0.6)
+    ax.spines["left"].set_color(PALETTE["light_grey"])
+    ax.spines["bottom"].set_color(PALETTE["light_grey"])
+    ax.legend(fontsize=9, frameon=False, labelcolor=PALETTE["dark"])
 
     plt.tight_layout()
-    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     logger.info("Saved %s", out)
 
@@ -439,31 +407,31 @@ def fig9_migration(mps_df: pl.DataFrame, out: Path) -> None:
     migrants  = int(mat.sum() - np.trace(mat))
     pct_mig   = 100 * migrants / total_mps if total_mps > 0 else 0
 
-    fig, axes = plt.subplots(1, 2, figsize=(16, 7), facecolor=BG)
+    fig, axes = plt.subplots(1, 2, figsize=(16, 7), facecolor="white")
     fig.suptitle(
-        f"Migracja posłów: miejsce urodzenia → okręg wyborczy  |  Kadencja X\n"
-        f"{migrants}/{total_mps} posłów ({pct_mig:.0f}%) kandyduje poza województwem urodzenia",
-        fontsize=13, fontweight="bold", color=DARK,
+        f"MP migration: birth location → electoral district  |  Term X\n"
+        f"{migrants}/{total_mps} MPs ({pct_mig:.0f}%) run outside their birth voivodeship",
+        fontsize=13, fontweight="bold", color=PALETTE["dark"],
     )
 
     # ── left: heatmap ─────────────────────────────────────────────────────────
     ax = axes[0]
-    ax.set_facecolor(BG2)
+    ax.set_facecolor("white")
     short = [v[:8] for v in all_voivs]
-    cmap = LinearSegmentedColormap.from_list("redmap", [BG2, RED_PALE, RED2, RED])
+    cmap = LinearSegmentedColormap.from_list("redmap", ["white", PALETTE["secondary"], PALETTE["accent"], "#8B0000"])
     im = ax.imshow(mat, cmap=cmap, aspect="auto")
     ax.set_xticks(range(n))
-    ax.set_xticklabels(short, rotation=45, ha="right", fontsize=7, color=DARK)
+    ax.set_xticklabels(short, rotation=45, ha="right", fontsize=7, color=PALETTE["dark"])
     ax.set_yticks(range(n))
-    ax.set_yticklabels(short, fontsize=7, color=DARK)
-    ax.set_xlabel("Województwo okręgu wyborczego", fontsize=9, color=DARK)
-    ax.set_ylabel("Województwo urodzenia", fontsize=9, color=DARK)
-    ax.set_title("Macierz przepływów", fontsize=11, color=DARK)
-    plt.colorbar(im, ax=ax, fraction=0.046, label="Liczba posłów")
+    ax.set_yticklabels(short, fontsize=7, color=PALETTE["dark"])
+    ax.set_xlabel("Electoral voivodeship", fontsize=9, color=PALETTE["dark"])
+    ax.set_ylabel("Birth voivodeship", fontsize=9, color=PALETTE["dark"])
+    ax.set_title("Flow matrix", fontsize=11, color=PALETTE["dark"])
+    plt.colorbar(im, ax=ax, fraction=0.046, label="Number of MPs")
 
     # ── right: net import/export bars ────────────────────────────────────────
     ax2 = axes[1]
-    ax2.set_facecolor(BG2)
+    ax2.set_facecolor("white")
 
     import_v = mat.sum(axis=0)    # by destination (electoral)
     export_v = mat.sum(axis=1)    # by origin (birth)
@@ -471,25 +439,25 @@ def fig9_migration(mps_df: pl.DataFrame, out: Path) -> None:
 
     sorted_idx = np.argsort(net)
     y = np.arange(n)
-    bar_colors = [RED if v >= 0 else GREY for v in net[sorted_idx]]
+    bar_colors = [PALETTE["accent"] if v >= 0 else PALETTE["neutral"] for v in net[sorted_idx]]
     ax2.barh(y, net[sorted_idx], color=bar_colors, alpha=0.85)
     ax2.set_yticks(y)
-    ax2.set_yticklabels([all_voivs[i] for i in sorted_idx], fontsize=8, color=DARK)
-    ax2.axvline(0, color=DARK, linewidth=0.8)
-    ax2.set_xlabel("Import − eksport (netto)", fontsize=9, color=DARK)
-    ax2.set_title("Które regiony importują / eksportują polityków?", fontsize=11, color=DARK)
-    ax2.tick_params(colors=DARK)
-    ax2.xaxis.set_tick_params(colors=DARK)
-    ax2.grid(axis="x", color=GRIDCOL, linewidth=0.6)
-    ax2.spines["left"].set_color(GRIDCOL)
-    ax2.spines["bottom"].set_color(GRIDCOL)
+    ax2.set_yticklabels([all_voivs[i] for i in sorted_idx], fontsize=8, color=PALETTE["dark"])
+    ax2.axvline(0, color=PALETTE["dark"], linewidth=0.8)
+    ax2.set_xlabel("Import − export (net)", fontsize=9, color=PALETTE["dark"])
+    ax2.set_title("Which regions import / export politicians?", fontsize=11, color=PALETTE["dark"])
+    ax2.tick_params(colors=PALETTE["dark"])
+    ax2.xaxis.set_tick_params(colors=PALETTE["dark"])
+    ax2.grid(axis="x", color=PALETTE["light_grey"], linewidth=0.6)
+    ax2.spines["left"].set_color(PALETTE["light_grey"])
+    ax2.spines["bottom"].set_color(PALETTE["light_grey"])
 
-    red_patch  = mpatches.Patch(color=RED,  alpha=0.85, label="importuje polityków")
-    grey_patch = mpatches.Patch(color=GREY, alpha=0.70, label="eksportuje polityków")
-    ax2.legend(handles=[red_patch, grey_patch], fontsize=9, frameon=False, labelcolor=DARK)
+    red_patch  = mpatches.Patch(color=PALETTE["accent"],  alpha=0.85, label="imports politicians")
+    grey_patch = mpatches.Patch(color=PALETTE["neutral"], alpha=0.70, label="exports politicians")
+    ax2.legend(handles=[red_patch, grey_patch], fontsize=9, frameon=False, labelcolor=PALETTE["dark"])
 
     plt.tight_layout(rect=[0, 0, 1, 0.94])
-    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     logger.info("Saved %s", out)
 

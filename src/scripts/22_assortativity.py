@@ -30,26 +30,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import ANALYSIS_DIR, NETWORKS_DIR, PROJECT_ROOT, AGREEMENT_THRESHOLDS
 from src.data.store import load_mps
 from src.analysis.network import adjacency_to_networkx
+from src.scripts.poster_style import apply_style, CLUB_COLOURS, cc, MAIN_CLUBS, PALETTE, COALITION, OPPOSITION, club_en
+
+apply_style()
 
 FIG_DIR = PROJECT_ROOT / "data" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
-
-BG    = "#FAFAFA"; BG2  = "#FFFFFF"; RED  = "#C0392B"; RED2 = "#E74C3C"
-DARK  = "#1a1a1a"; GREY = "#757575"; GRID = "#E0E0E0"
-
-CLUB_COLOURS = {
-    "KO": "#E8C4C4", "PiS": "#8B0000", "PSL-TD": "#C0392B",
-    "Lewica": "#FF5252", "Polska2050": "#FF8C69", "Polska2050-TD": "#FFAB91",
-    "Konfederacja": "#5D0000", "Konfederacja_KP": "#7A0000",
-    "Razem": "#FF7675", "PSL": "#D4826B", "Centrum": "#F0A090",
-    "niez.": "#777777", "Demokracja": "#B05050",
-}
-
-mpl.rcParams.update({
-    "figure.facecolor": BG, "axes.facecolor": BG2, "axes.edgecolor": "#CCCCCC",
-    "axes.labelcolor": DARK, "text.color": DARK, "xtick.color": DARK, "ytick.color": DARK,
-    "grid.color": GRID, "grid.linewidth": 0.6, "font.family": "sans-serif", "font.size": 11,
-})
 
 REF_DATE  = _date(2023, 11, 13)
 MIN_COP   = 50
@@ -91,39 +77,39 @@ def compute_assortativity(G, term: int = 10) -> dict:
 
     # Categorical: club
     try:
-        results["Klub (r)"] = nx.attribute_assortativity_coefficient(G, "club")
+        results["Club (r)"] = nx.attribute_assortativity_coefficient(G, "club")
     except Exception as e:
-        results["Klub (r)"] = float("nan")
+        results["Club (r)"] = float("nan")
         print(f"    club assortativity failed: {e}")
 
     # Categorical: voivodeship
     try:
-        results["Województwo (r)"] = nx.attribute_assortativity_coefficient(G, "voivodeship")
+        results["Voivodeship (r)"] = nx.attribute_assortativity_coefficient(G, "voivodeship")
     except Exception:
-        results["Województwo (r)"] = float("nan")
+        results["Voivodeship (r)"] = float("nan")
 
     # Numeric: degree
     try:
-        results["Stopień węzła (r)"] = nx.degree_assortativity_coefficient(G)
+        results["Node degree (r)"] = nx.degree_assortativity_coefficient(G)
     except Exception:
-        results["Stopień węzła (r)"] = float("nan")
+        results["Node degree (r)"] = float("nan")
 
     # Numeric: age
     has_age = [n for n in G.nodes() if G.nodes[n].get("age") is not None]
     if len(has_age) > 10:
         G_age = G.subgraph(has_age).copy()
         try:
-            results["Wiek (r)"] = nx.numeric_assortativity_coefficient(G_age, "age")
+            results["Age (r)"] = nx.numeric_assortativity_coefficient(G_age, "age")
         except Exception:
-            results["Wiek (r)"] = float("nan")
+            results["Age (r)"] = float("nan")
     else:
-        results["Wiek (r)"] = float("nan")
+        results["Age (r)"] = float("nan")
 
     # Numeric: gender (binary)
     try:
-        results["Płeć (r)"] = nx.numeric_assortativity_coefficient(G, "is_female")
+        results["Gender (r)"] = nx.numeric_assortativity_coefficient(G, "is_female")
     except Exception:
-        results["Płeć (r)"] = float("nan")
+        results["Gender (r)"] = float("nan")
 
     return results
 
@@ -149,15 +135,15 @@ def compute_mixing_matrix(G) -> tuple[np.ndarray, list]:
 
 def fig27_assortativity(G, results: dict) -> None:
     print("  fig27: assortativity coefficients + mixing matrix …")
-    fig = plt.figure(figsize=(15, 6.5), facecolor=BG)
+    fig = plt.figure(figsize=(15, 6.5), facecolor="white")
     gs  = gridspec.GridSpec(1, 2, figure=fig, wspace=0.42)
 
     # Left: bar chart of assortativity coefficients
     ax1 = fig.add_subplot(gs[0])
-    ax1.set_facecolor(BG2)
+    ax1.set_facecolor("white")
     labels = list(results.keys())
     vals   = [results[l] for l in labels]
-    cols   = [RED if v > 0 else GREY for v in vals]
+    cols   = [PALETTE["accent"] if v > 0 else PALETTE["neutral"] for v in vals]
     y      = np.arange(len(labels))
     bars   = ax1.barh(y, vals, color=cols, alpha=0.85, edgecolor="#333", linewidth=0.4, height=0.55)
     for bar, v in zip(bars, vals):
@@ -165,10 +151,10 @@ def fig27_assortativity(G, results: dict) -> None:
             ax1.text(v + (0.01 if v >= 0 else -0.01), bar.get_y() + bar.get_height()/2,
                      f"{v:.3f}", va="center", ha="left" if v >= 0 else "right", fontsize=10)
     ax1.set_yticks(y); ax1.set_yticklabels(labels, fontsize=10)
-    ax1.axvline(0, color=DARK, linewidth=0.9, linestyle="-", alpha=0.5)
-    ax1.set_xlabel("Współczynnik asortyczności Newmana r", fontsize=10)
+    ax1.axvline(0, color=PALETTE["dark"], linewidth=0.9, linestyle="-", alpha=0.5)
+    ax1.set_xlabel("Newman's assortativity coefficient r", fontsize=10)
     ax1.set_title(
-        f"Asortyczność sieci głosowań\n(próg {THRESHOLD:.0%}, r > 0 = homofilia)",
+        f"Voting network assortativity\n(threshold {THRESHOLD:.0%}, r > 0 = homophily)",
         fontsize=12,
     )
     ax1.set_xlim(-0.5, 1.05)
@@ -176,7 +162,7 @@ def fig27_assortativity(G, results: dict) -> None:
 
     # Right: mixing matrix (clubs)
     ax2 = fig.add_subplot(gs[1])
-    ax2.set_facecolor(BG2)
+    ax2.set_facecolor("white")
     mat_norm, clubs = compute_mixing_matrix(G)
 
     cmap = LinearSegmentedColormap.from_list(
@@ -189,16 +175,16 @@ def fig27_assortativity(G, results: dict) -> None:
     for i in range(len(clubs)):
         for j in range(len(clubs)):
             v = mat_norm[i, j]
-            col = "#FFFFFF" if v > 0.5 else DARK
+            col = "#FFFFFF" if v > 0.5 else PALETTE["dark"]
             ax2.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=6.5, color=col)
-    ax2.set_title("Macierz mieszania krawędzi wg klubu\n(wiersz = klub źródłowy, wartość = frakcja krawędzi)", fontsize=10)
-    fig.colorbar(im, ax=ax2, fraction=0.03, pad=0.02, label="Frakcja krawędzi")
+    ax2.set_title("Edge mixing matrix by club\n(row = source club, value = edge fraction)", fontsize=10)
+    fig.colorbar(im, ax=ax2, fraction=0.03, pad=0.02, label="Edge fraction")
 
-    fig.suptitle("Analiza asortyczności sieci głosowań  |  Kadencja X",
-                 fontsize=14, color=DARK, y=1.01)
+    fig.suptitle("Voting network assortativity analysis  |  Term X",
+                 fontsize=14, color=PALETTE["dark"], y=1.01)
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig27_assortativity.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 
@@ -230,27 +216,27 @@ def fig28_assortativity_thresh(term: int = 10) -> None:
         except Exception:
             r_voiv.append(np.nan)
 
-    fig, ax = plt.subplots(figsize=(11, 5.5), facecolor=BG)
-    ax.set_facecolor(BG2)
-    ax.plot(thresholds, r_club,   color=RED,  linewidth=2.5, marker="o", markersize=5,
-            label="Klub (kategorialna)", zorder=3)
-    ax.plot(thresholds, r_voiv,   color="#E74C3C", linewidth=2.0, marker="s", markersize=4,
-            linestyle="--", label="Województwo (kategorialna)", zorder=3)
-    ax.plot(thresholds, r_degree, color=GREY, linewidth=2.0, marker="^", markersize=4,
-            linestyle=":", label="Stopień węzła (numeryczna)", zorder=3)
+    fig, ax = plt.subplots(figsize=(11, 5.5), facecolor="white")
+    ax.set_facecolor("white")
+    ax.plot(thresholds, r_club,   color=PALETTE["accent"],    linewidth=2.5, marker="o", markersize=5,
+            label="Club (categorical)", zorder=3)
+    ax.plot(thresholds, r_voiv,   color=PALETTE["secondary"], linewidth=2.0, marker="s", markersize=4,
+            linestyle="--", label="Voivodeship (categorical)", zorder=3)
+    ax.plot(thresholds, r_degree, color=PALETTE["neutral"],   linewidth=2.0, marker="^", markersize=4,
+            linestyle=":", label="Node degree (numeric)", zorder=3)
 
-    ax.axhline(0, color=DARK, linewidth=0.8, linestyle="-", alpha=0.4)
-    ax.set_xlabel("Próg zgodności", fontsize=11)
-    ax.set_ylabel("Współczynnik asortyczności r", fontsize=11)
+    ax.axhline(0, color=PALETTE["dark"], linewidth=0.8, linestyle="-", alpha=0.4)
+    ax.set_xlabel("Agreement threshold", fontsize=11)
+    ax.set_ylabel("Assortativity coefficient r", fontsize=11)
     ax.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=1))
-    ax.set_title("Asortyczność w zależności od progu zgodności  |  Kadencja X", fontsize=13, pad=12)
+    ax.set_title("Assortativity vs agreement threshold  |  Term X", fontsize=13, pad=12)
     ax.grid(alpha=0.25); ax.spines[["top", "right"]].set_visible(False)
     ax.legend(fontsize=10, framealpha=0.5)
     ax.set_ylim(-0.6, 1.05)
 
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig28_assortativity_thresh.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 

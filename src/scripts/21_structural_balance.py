@@ -38,28 +38,12 @@ import polars as pl
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import ANALYSIS_DIR, NETWORKS_DIR, PROJECT_ROOT
 from src.data.store import load_mps
+from src.scripts.poster_style import apply_style, CLUB_COLOURS, cc, MAIN_CLUBS, PALETTE, COALITION, OPPOSITION, club_en
+
+apply_style()
 
 FIG_DIR = PROJECT_ROOT / "data" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
-
-BG    = "#FAFAFA"; BG2  = "#FFFFFF"; RED  = "#C0392B"; RED2 = "#E74C3C"
-DARK  = "#1a1a1a"; GREY = "#757575"; GRID = "#E0E0E0"
-BLUE  = "#2980B9"; BLUE_LIGHT = "#AED6F1"
-
-CLUB_COLOURS = {
-    "KO": "#E8C4C4", "PiS": "#8B0000", "PSL-TD": "#C0392B",
-    "Lewica": "#FF5252", "Polska2050": "#FF8C69", "Polska2050-TD": "#FFAB91",
-    "Konfederacja": "#5D0000", "Konfederacja_KP": "#7A0000",
-    "Razem": "#FF7675", "PSL": "#D4826B", "Centrum": "#F0A090",
-    "niez.": "#777777", "Demokracja": "#B05050",
-}
-MAIN_CLUBS = ["KO", "PiS", "PSL-TD", "Lewica", "Polska2050-TD", "Konfederacja", "Razem"]
-
-mpl.rcParams.update({
-    "figure.facecolor": BG, "axes.facecolor": BG2, "axes.edgecolor": "#CCCCCC",
-    "axes.labelcolor": DARK, "text.color": DARK, "xtick.color": DARK, "ytick.color": DARK,
-    "grid.color": GRID, "grid.linewidth": 0.6, "font.family": "sans-serif", "font.size": 11,
-})
 
 POS_THRESH = 0.65
 NEG_THRESH = 0.50
@@ -160,42 +144,42 @@ def build_signed_network(term: int = 10):
 
 def fig25_balance_triangles(df: pl.DataFrame, summary: dict, type_counts: dict) -> None:
     print("  fig25: balance triangles …")
-    fig = plt.figure(figsize=(15, 6.5), facecolor=BG)
+    fig = plt.figure(figsize=(15, 6.5), facecolor="white")
     gs  = gridspec.GridSpec(1, 3, figure=fig, wspace=0.42)
 
     # Left: triangle type pie
     ax1 = fig.add_subplot(gs[0])
-    ax1.set_facecolor(BG2)
+    ax1.set_facecolor("white")
     balanced_types   = {"+++": type_counts["+++"], "+--": type_counts["+--"]}
     unbalanced_types = {"++-": type_counts["++-"], "---": type_counts["---"]}
     total_sampled = sum(type_counts.values())
 
     labels = list(type_counts.keys())
     vals   = [type_counts[l] for l in labels]
-    colors = ["#8B0000", "#E74C3C", BLUE_LIGHT, BLUE]
+    colors = ["#8B0000", PALETTE["accent"], "#aec7e8", PALETTE["primary"]]
     explode= [0, 0, 0.07, 0.07]
     wedges, texts, autotexts = ax1.pie(
         vals, labels=labels, colors=colors, explode=explode,
         autopct="%1.1f%%", startangle=90,
-        textprops={"fontsize": 10, "color": DARK},
-        wedgeprops={"edgecolor": BG2, "linewidth": 1.5},
+        textprops={"fontsize": 10, "color": PALETTE["dark"]},
+        wedgeprops={"edgecolor": "white", "linewidth": 1.5},
     )
     for at in autotexts:
         at.set_fontsize(9)
     ax1.set_title(
-        f"Typy trójkątów w sieci podpisanej\n"
-        f"(próbka {total_sampled:,} trójkątów)\n"
-        f"Zbalansowane: {summary['balanced']:,}  |  Niezbal.: {summary['unbalanced']:,}",
+        f"Triangle types in the signed network\n"
+        f"(sample of {total_sampled:,} triangles)\n"
+        f"Balanced: {summary['balanced']:,}  |  Unbal.: {summary['unbalanced']:,}",
         fontsize=10, pad=10,
     )
-    red_p  = mpatches.Patch(color="#8B0000", label="Zbalansowane")
-    blue_p = mpatches.Patch(color=BLUE_LIGHT, label="Niezbalansowane")
+    red_p  = mpatches.Patch(color="#8B0000", label="Balanced")
+    blue_p = mpatches.Patch(color="#aec7e8", label="Unbalanced")
     ax1.legend(handles=[red_p, blue_p], fontsize=8.5, loc="lower center",
                bbox_to_anchor=(0.5, -0.12), framealpha=0.5)
 
     # Middle: frustration index by club
     ax2 = fig.add_subplot(gs[1])
-    ax2.set_facecolor(BG2)
+    ax2.set_facecolor("white")
     club_frust = (
         df.filter(
             pl.col("frustration").is_not_null()
@@ -209,22 +193,22 @@ def fig25_balance_triangles(df: pl.DataFrame, summary: dict, type_counts: dict) 
     clubs_f  = club_frust["club"].to_list()
     fractions= club_frust["mean_frust"].to_numpy()
     y        = np.arange(len(clubs_f))
-    cols     = [CLUB_COLOURS.get(c, GREY) for c in clubs_f]
+    cols     = [CLUB_COLOURS.get(c, PALETTE["neutral"]) for c in clubs_f]
     ax2.barh(y, fractions, color=cols, alpha=0.85, edgecolor="#333", linewidth=0.4, height=0.65)
     for i, f in enumerate(fractions):
         ax2.text(f + 0.003, i, f"{f:.1%}", va="center", fontsize=9)
     ax2.set_yticks(y); ax2.set_yticklabels(clubs_f, fontsize=9.5)
     ax2.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=1))
-    ax2.set_xlabel("Indeks frustracji (% niezbal. trójkątów)", fontsize=10)
-    ax2.set_title("Frustration index wg klubu", fontsize=11)
-    ax2.axvline(summary["frustration_index"], color=DARK, linewidth=1.2,
-                linestyle="--", alpha=0.6, label=f"Średnia {summary['frustration_index']:.1%}")
+    ax2.set_xlabel("Frustration index (% unbalanced triangles)", fontsize=10)
+    ax2.set_title("Frustration by club", fontsize=11)
+    ax2.axvline(summary["frustration_index"], color=PALETTE["dark"], linewidth=1.2,
+                linestyle="--", alpha=0.6, label=f"Mean {summary['frustration_index']:.1%}")
     ax2.legend(fontsize=8.5, framealpha=0.5)
     ax2.grid(axis="x", alpha=0.3); ax2.spines[["top", "right"]].set_visible(False)
 
     # Right: top MPs by frustration (political anomalies)
     ax3 = fig.add_subplot(gs[2])
-    ax3.set_facecolor(BG2)
+    ax3.set_facecolor("white")
     top_frust = (
         df.filter(
             pl.col("frustration").is_not_null()
@@ -237,7 +221,7 @@ def fig25_balance_triangles(df: pl.DataFrame, summary: dict, type_counts: dict) 
     fracs_t  = top_frust["frustration"].to_numpy()
     clubs_t  = top_frust["club"].to_list()
     y2       = np.arange(len(names_t))
-    cols2    = [CLUB_COLOURS.get(c, GREY) for c in clubs_t]
+    cols2    = [CLUB_COLOURS.get(c, PALETTE["neutral"]) for c in clubs_t]
     ax3.barh(y2, fracs_t, color=cols2, alpha=0.85, edgecolor="#333", linewidth=0.4, height=0.65)
     for i, f in enumerate(fracs_t):
         ax3.text(f + 0.003, i, f"{f:.1%}", va="center", fontsize=8.5)
@@ -245,19 +229,19 @@ def fig25_balance_triangles(df: pl.DataFrame, summary: dict, type_counts: dict) 
     ax3.set_yticklabels([f"{n}  [{c}]" for n, c in zip(names_t, clubs_t)], fontsize=8)
     ax3.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=1))
     ax3.set_xlabel("Frustration index", fontsize=10)
-    ax3.set_title("Posłowie z najwyższą frustracją\n(anomalie sieciowe)", fontsize=11)
+    ax3.set_title("Top MPs by frustration\n(network anomalies)", fontsize=11)
     ax3.invert_yaxis()
     ax3.grid(axis="x", alpha=0.3); ax3.spines[["top", "right"]].set_visible(False)
 
     fig.suptitle(
-        f"Równowaga strukturalna sieci głosowań  |  Kadencja X\n"
-        f"+ edge: zgoda ≥ {POS_THRESH:.0%}  ·  − edge: zgoda ≤ {NEG_THRESH:.0%}  "
+        f"Structural balance of voting network  |  Term X\n"
+        f"+ edge: agreement ≥ {POS_THRESH:.0%}  ·  − edge: agreement ≤ {NEG_THRESH:.0%}  "
         f"·  Global frustration: {summary['frustration_index']:.2%}",
-        fontsize=13, color=DARK, y=1.02,
+        fontsize=13, color=PALETTE["dark"], y=1.02,
     )
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig25_balance_triangles.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 
@@ -284,19 +268,19 @@ def fig26_balance_network(S: np.ndarray, mp_ids: list, id_to_club: dict,
     print(f"    layout on {G.number_of_nodes()} nodes, {G.number_of_edges()} edges …")
     pos = nx.spring_layout(G, seed=42, k=0.30, iterations=60)
 
-    node_cols  = [CLUB_COLOURS.get(G.nodes[n]["club"], GREY) for n in G.nodes()]
+    node_cols  = [CLUB_COLOURS.get(G.nodes[n]["club"], PALETTE["neutral"]) for n in G.nodes()]
     degree_c   = nx.degree_centrality(G)
     node_sizes = [8 + 50 * degree_c[n] for n in G.nodes()]
 
-    fig, ax = plt.subplots(figsize=(14, 12), facecolor=BG)
-    ax.set_facecolor(BG); ax.axis("off")
+    fig, ax = plt.subplots(figsize=(14, 12), facecolor="white")
+    ax.set_facecolor("white"); ax.axis("off")
 
     for u, v in pos_edges:
         ax.plot([pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
-                color=RED, alpha=0.08, linewidth=0.3, zorder=1)
+                color=PALETTE["accent"], alpha=0.08, linewidth=0.3, zorder=1)
     for u, v in neg_edges:
         ax.plot([pos[u][0], pos[v][0]], [pos[u][1], pos[v][1]],
-                color=BLUE, alpha=0.25, linewidth=0.5, zorder=1)
+                color=PALETTE["primary"], alpha=0.25, linewidth=0.5, zorder=1)
 
     nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_cols,
                            node_size=node_sizes, linewidths=0.3,
@@ -305,24 +289,24 @@ def fig26_balance_network(S: np.ndarray, mp_ids: list, id_to_club: dict,
     seen = {}
     for n in G.nodes():
         c = G.nodes[n]["club"]
-        if c not in seen: seen[c] = CLUB_COLOURS.get(c, GREY)
+        if c not in seen: seen[c] = CLUB_COLOURS.get(c, PALETTE["neutral"])
     club_handles = [mpatches.Patch(color=col, label=club)
                     for club, col in sorted(seen.items())]
     edge_handles = [
-        mpl.lines.Line2D([0], [0], color=RED,  linewidth=2, label=f"+ edge (zgodność ≥ {POS_THRESH:.0%})"),
-        mpl.lines.Line2D([0], [0], color=BLUE, linewidth=2, label=f"− edge (zgodność ≤ {NEG_THRESH:.0%})"),
+        mpl.lines.Line2D([0], [0], color=PALETTE["accent"],  linewidth=2, label=f"Positive edges (agreement ≥ {POS_THRESH:.0%})"),
+        mpl.lines.Line2D([0], [0], color=PALETTE["primary"], linewidth=2, label=f"Negative edges (agreement ≤ {NEG_THRESH:.0%})"),
     ]
     ax.legend(handles=club_handles + edge_handles, fontsize=7.5, loc="lower left",
-              framealpha=0.6, ncol=2, title="Legenda", title_fontsize=8)
+              framealpha=0.6, ncol=2, title="Legend", title_fontsize=8)
 
     ax.set_title(
-        f"Sieć podpisana  |  {len(pos_edges):,} krawędzi '+' (czerwone)  ·  "
-        f"{len(neg_edges):,} krawędzi '−' (niebieskie)\nKadencja X",
+        f"Signed voting network  |  {len(pos_edges):,} '+' edges (red)  ·  "
+        f"{len(neg_edges):,} '−' edges (blue)\nTerm X",
         fontsize=12, pad=12,
     )
     fig.tight_layout(pad=0.5)
     out = FIG_DIR / "fig26_balance_network.png"
-    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 

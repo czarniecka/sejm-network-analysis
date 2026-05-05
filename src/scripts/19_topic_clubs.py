@@ -24,38 +24,12 @@ from matplotlib.colors import LinearSegmentedColormap
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import ANALYSIS_DIR, PARQUET_DIR, PROJECT_ROOT
 from src.data.store import load_mps
+from src.scripts.poster_style import apply_style, CLUB_COLOURS, cc, MAIN_CLUBS, PALETTE, COALITION, OPPOSITION, club_en
+
+apply_style()
 
 FIG_DIR = PROJECT_ROOT / "data" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
-
-BG       = "#FAFAFA"
-BG2      = "#FFFFFF"
-RED      = "#C0392B"
-RED2     = "#E74C3C"
-RED_PALE = "#FFCDD2"
-DARK     = "#1a1a1a"
-GREY     = "#757575"
-GRID     = "#E0E0E0"
-WHITE    = "#FFFFFF"
-
-CLUB_COLOURS = {
-    "KO": "#E8C4C4", "PiS": "#8B0000", "PSL-TD": "#C0392B",
-    "Lewica": "#FF5252", "Polska2050": "#FF8C69", "Polska2050-TD": "#FFAB91",
-    "Konfederacja": "#5D0000", "Konfederacja_KP": "#7A0000",
-    "Razem": "#FF7675", "PSL": "#D4826B", "Centrum": "#F0A090",
-    "niez.": "#777777", "Demokracja": "#B05050",
-}
-MAIN_CLUBS = ["KO", "PiS", "PSL-TD", "Lewica", "Polska2050-TD", "Konfederacja", "Razem"]
-COALITION  = {"KO", "PSL-TD", "Lewica", "Polska2050", "Polska2050-TD", "Razem"}
-OPPOSITION = {"PiS", "Konfederacja", "Konfederacja_KP"}
-
-mpl.rcParams.update({
-    "figure.facecolor": BG, "axes.facecolor": BG2,
-    "axes.edgecolor": "#CCCCCC", "axes.labelcolor": DARK,
-    "text.color": DARK, "xtick.color": DARK, "ytick.color": DARK,
-    "grid.color": GRID, "grid.linewidth": 0.6,
-    "font.family": "sans-serif", "font.size": 11,
-})
 
 
 def shorten_topic(words: str, n: int = 4) -> str:
@@ -225,11 +199,11 @@ def build_coalition_topic_split(term: int = 10) -> pl.DataFrame:
 def fig21_topic_clubs_heatmap(mat: np.ndarray, topic_words: list, clubs: list) -> None:
     print("  fig21: topic × club heatmap …")
     cmap = LinearSegmentedColormap.from_list(
-        "rc", ["#FFE8E8", "#FF9999", "#E74C3C", "#C0392B", "#8B0000", "#3d0000"]
+        "rc", ["#FFE8E8", "#FF9999", PALETTE["accent"], PALETTE["accent"], "#8B0000", "#3d0000"]
     )
 
-    fig, ax = plt.subplots(figsize=(12, max(8, len(topic_words) * 0.38 + 1.5)), facecolor=BG)
-    ax.set_facecolor(BG2)
+    fig, ax = plt.subplots(figsize=(12, max(8, len(topic_words) * 0.38 + 1.5)), facecolor="white")
+    ax.set_facecolor("white")
 
     im = ax.imshow(mat, cmap=cmap, vmin=0.3, vmax=1.0, aspect="auto")
 
@@ -237,7 +211,7 @@ def fig21_topic_clubs_heatmap(mat: np.ndarray, topic_words: list, clubs: list) -
     for j, club in enumerate(clubs):
         ax.add_patch(mpl.patches.Rectangle(
             (j - 0.5, -1.5), 1, 1,
-            facecolor=CLUB_COLOURS.get(club, GREY), edgecolor="white", linewidth=1,
+            facecolor=CLUB_COLOURS.get(club, PALETTE["neutral"]), edgecolor="white", linewidth=1,
             clip_on=False, transform=ax.transData,
         ))
 
@@ -250,20 +224,20 @@ def fig21_topic_clubs_heatmap(mat: np.ndarray, topic_words: list, clubs: list) -
         for j in range(len(clubs)):
             v = mat[i, j]
             if not np.isnan(v):
-                col = WHITE if v > 0.65 else DARK
+                col = "white" if v > 0.65 else PALETTE["dark"]
                 ax.text(j, i, f"{v:.2f}", ha="center", va="center", fontsize=7, color=col)
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
-    cbar.set_label("Spójność głosowania wewnątrz klubu", fontsize=9)
+    cbar.set_label("Intra-club voting cohesion", fontsize=9)
 
     ax.set_title(
-        "Spójność głosowania wg tematu i klubu  |  Kadencja X\n"
-        "(Rice index: 1 = całkowita jedność, 0 = pół na pół)",
+        "Voting cohesion by topic and club  |  Term X\n"
+        "(Rice index: 1 = full unity, 0 = 50/50 split)",
         fontsize=12, pad=14,
     )
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig21_topic_clubs_heatmap.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 
@@ -274,18 +248,18 @@ def fig22_topic_divisiveness(split_df: pl.DataFrame) -> None:
         print("    no data")
         return
 
-    fig = plt.figure(figsize=(14, 7), facecolor=BG)
+    fig = plt.figure(figsize=(14, 7), facecolor="white")
     gs  = gridspec.GridSpec(1, 2, figure=fig, wspace=0.45)
 
     cmap = LinearSegmentedColormap.from_list(
-        "rc2", ["#FFE8E8", "#FF9999", "#E74C3C", "#C0392B", "#8B0000"]
+        "rc2", ["#FFE8E8", "#FF9999", PALETTE["accent"], PALETTE["accent"], "#8B0000"]
     )
     norm = mpl.colors.Normalize(vmin=split_df["mean_coal_oppo_agree"].min(),
                                  vmax=split_df["mean_coal_oppo_agree"].max())
 
     # Left: most divisive (coalition vs opposition)
     ax1 = fig.add_subplot(gs[0])
-    ax1.set_facecolor(BG2)
+    ax1.set_facecolor("white")
     div = split_df.sort("mean_coal_oppo_agree").head(15)
     labels = [shorten_topic(r["top_words"]) for r in div.iter_rows(named=True)]
     vals   = div["mean_coal_oppo_agree"].to_numpy()
@@ -295,16 +269,16 @@ def fig22_topic_divisiveness(split_df: pl.DataFrame) -> None:
     bars   = ax1.barh(y, vals, color=cols, alpha=0.88, edgecolor="#222", linewidth=0.3, height=0.65)
     for bar, v, nv in zip(bars, vals, n_v):
         ax1.text(v + 0.008, bar.get_y() + bar.get_height()/2,
-                 f"{v:.2f}  (n={nv})", va="center", fontsize=8.5, color=DARK)
+                 f"{v:.2f}  (n={nv})", va="center", fontsize=8.5, color=PALETTE["dark"])
     ax1.set_yticks(y); ax1.set_yticklabels(labels, fontsize=9)
-    ax1.set_xlabel("Zgodność koalicja–opozycja", fontsize=10)
-    ax1.set_title("Najbardziej polaryzujące tematy", fontsize=12)
+    ax1.set_xlabel("Coalition–opposition agreement", fontsize=10)
+    ax1.set_title("Most polarising topics", fontsize=12)
     ax1.set_xlim(0, 1.2); ax1.invert_yaxis()
     ax1.grid(axis="x", alpha=0.25); ax1.spines[["top", "right"]].set_visible(False)
 
     # Right: most uniting
     ax2 = fig.add_subplot(gs[1])
-    ax2.set_facecolor(BG2)
+    ax2.set_facecolor("white")
     uni = split_df.sort("mean_coal_oppo_agree", descending=True).head(15)
     labels2 = [shorten_topic(r["top_words"]) for r in uni.iter_rows(named=True)]
     vals2   = uni["mean_coal_oppo_agree"].to_numpy()
@@ -314,18 +288,18 @@ def fig22_topic_divisiveness(split_df: pl.DataFrame) -> None:
     bars2   = ax2.barh(y2, vals2, color=cols2, alpha=0.88, edgecolor="#222", linewidth=0.3, height=0.65)
     for bar, v, nv in zip(bars2, vals2, n_v2):
         ax2.text(v + 0.008, bar.get_y() + bar.get_height()/2,
-                 f"{v:.2f}  (n={nv})", va="center", fontsize=8.5, color=DARK)
+                 f"{v:.2f}  (n={nv})", va="center", fontsize=8.5, color=PALETTE["dark"])
     ax2.set_yticks(y2); ax2.set_yticklabels(labels2, fontsize=9)
-    ax2.set_xlabel("Zgodność koalicja–opozycja", fontsize=10)
-    ax2.set_title("Tematy jednoczące Sejm", fontsize=12)
+    ax2.set_xlabel("Coalition–opposition agreement", fontsize=10)
+    ax2.set_title("Topics uniting the Sejm", fontsize=12)
     ax2.set_xlim(0, 1.2); ax2.invert_yaxis()
     ax2.grid(axis="x", alpha=0.25); ax2.spines[["top", "right"]].set_visible(False)
 
-    fig.suptitle("Które tematy dzielą, a które jednoczą koalicję i opozycję?  |  Kadencja X",
-                 fontsize=14, color=DARK, y=1.01)
+    fig.suptitle("Which topics divide vs. unite coalition and opposition?  |  Term X",
+                 fontsize=14, color=PALETTE["dark"], y=1.01)
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig22_topic_divisiveness.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 

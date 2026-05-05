@@ -24,36 +24,12 @@ from scipy.spatial.distance import squareform
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from src.config import ANALYSIS_DIR, NETWORKS_DIR, PROJECT_ROOT
 from src.data.store import load_mps
+from src.scripts.poster_style import apply_style, CLUB_COLOURS, cc, MAIN_CLUBS, PALETTE, COALITION, OPPOSITION, club_en
+
+apply_style()
 
 FIG_DIR = PROJECT_ROOT / "data" / "figures"
 FIG_DIR.mkdir(parents=True, exist_ok=True)
-
-BG       = "#FAFAFA"
-BG2      = "#FFFFFF"
-RED      = "#C0392B"
-RED2     = "#E74C3C"
-RED_PALE = "#FFCDD2"
-DARK     = "#1a1a1a"
-GREY     = "#757575"
-GRID     = "#E0E0E0"
-
-CLUB_COLOURS = {
-    "KO": "#E8C4C4", "PiS": "#8B0000", "PSL-TD": "#C0392B",
-    "Lewica": "#FF5252", "Polska2050": "#FF8C69", "Polska2050-TD": "#FFAB91",
-    "Konfederacja": "#5D0000", "Konfederacja_KP": "#7A0000",
-    "Razem": "#FF7675", "PSL": "#D4826B", "Centrum": "#F0A090",
-    "niez.": "#777777", "Demokracja": "#B05050",
-}
-COALITION  = {"KO", "PSL-TD", "Lewica", "Polska2050", "Polska2050-TD", "Razem"}
-OPPOSITION = {"PiS", "Konfederacja", "Konfederacja_KP"}
-
-mpl.rcParams.update({
-    "figure.facecolor": BG, "axes.facecolor": BG2,
-    "axes.edgecolor": "#CCCCCC", "axes.labelcolor": DARK,
-    "text.color": DARK, "xtick.color": DARK, "ytick.color": DARK,
-    "grid.color": GRID, "grid.linewidth": 0.6,
-    "font.family": "sans-serif", "font.size": 11,
-})
 
 
 def load_data(term: int = 10):
@@ -93,7 +69,7 @@ def fig17_echo_chamber(agreement, copresence, mp_ids, clubs, names, min_cop: int
 
     mat_ord   = mat[np.ix_(order, order)]
     clubs_ord = [clubs[i] for i in order]
-    node_cols = [CLUB_COLOURS.get(c, GREY) for c in clubs_ord]
+    node_cols = [cc(c) for c in clubs_ord]
 
     from matplotlib.colors import LinearSegmentedColormap
     cmap = LinearSegmentedColormap.from_list(
@@ -101,7 +77,7 @@ def fig17_echo_chamber(agreement, copresence, mp_ids, clubs, names, min_cop: int
     )
 
     N = len(order)
-    fig = plt.figure(figsize=(14, 13), facecolor=BG)
+    fig = plt.figure(figsize=(14, 13), facecolor="white")
     # Layout: dendrogram top (thin), color bar left, heatmap
     gs = mpl.gridspec.GridSpec(
         3, 3,
@@ -113,61 +89,61 @@ def fig17_echo_chamber(agreement, copresence, mp_ids, clubs, names, min_cop: int
 
     # Top dendrogram
     ax_dend_top = fig.add_subplot(gs[0, 2])
-    ax_dend_top.set_facecolor(BG)
+    ax_dend_top.set_facecolor("white")
     dend = dendrogram(Z, ax=ax_dend_top, no_labels=True, orientation="top",
-                      color_threshold=0, above_threshold_color=RED2)
+                      color_threshold=0, above_threshold_color=PALETTE["accent"])
     ax_dend_top.set_axis_off()
 
     # Left dendrogram
     ax_dend_left = fig.add_subplot(gs[2, 0])
-    ax_dend_left.set_facecolor(BG)
+    ax_dend_left.set_facecolor("white")
     dendrogram(Z, ax=ax_dend_left, no_labels=True, orientation="left",
-               color_threshold=0, above_threshold_color=RED2)
+               color_threshold=0, above_threshold_color=PALETTE["accent"])
     ax_dend_left.set_axis_off()
 
     # Club colour strip (top)
     ax_strip_top = fig.add_subplot(gs[1, 2])
-    ax_strip_top.set_facecolor(BG)
-    strip_top = np.array([[CLUB_COLOURS.get(c, GREY) for c in clubs_ord]])
+    ax_strip_top.set_facecolor("white")
+    strip_top = np.array([[cc(c) for c in clubs_ord]])
     ax_strip_top.imshow([[mpl.colors.to_rgba(c) for c in strip_top[0]]],
                         aspect="auto", interpolation="nearest")
     ax_strip_top.set_axis_off()
 
     # Club colour strip (left)
     ax_strip_left = fig.add_subplot(gs[2, 1])
-    ax_strip_left.set_facecolor(BG)
-    strip_left = np.array([[CLUB_COLOURS.get(c, GREY) for c in clubs_ord]]).T
-    ax_strip_left.imshow([[mpl.colors.to_rgba(CLUB_COLOURS.get(c, GREY))] for c in clubs_ord],
+    ax_strip_left.set_facecolor("white")
+    strip_left = np.array([[cc(c) for c in clubs_ord]]).T
+    ax_strip_left.imshow([[mpl.colors.to_rgba(cc(c))] for c in clubs_ord],
                          aspect="auto", interpolation="nearest")
     ax_strip_left.set_axis_off()
 
     # Heatmap
     ax = fig.add_subplot(gs[2, 2])
-    ax.set_facecolor(BG2)
+    ax.set_facecolor("white")
     im = ax.imshow(mat_ord, cmap=cmap, vmin=0.3, vmax=1.0,
                    aspect="auto", interpolation="nearest")
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_title(
-        f"Komora echa — macierz zgodności głosowań (posłowie uszeregowani hierarchicznie)\n"
-        f"Kadencja X  |  {N} posłów  |  min. {min_cop} wspólnych głosowań",
+        f"Echo chamber — voting agreement matrix (MPs sorted hierarchically)\n"
+        f"Term X  |  {N} MPs  |  min. {min_cop} joint votes",
         fontsize=12, pad=10,
     )
 
     cbar = fig.colorbar(im, ax=ax, fraction=0.03, pad=0.01)
-    cbar.set_label("Zgodność głosowań", fontsize=9)
+    cbar.set_label("Voting agreement", fontsize=9)
 
     # Legend
     seen = {}
     for c in clubs_ord:
         if c not in seen:
-            seen[c] = CLUB_COLOURS.get(c, GREY)
+            seen[c] = cc(c)
     handles = [mpatches.Patch(color=col, label=club) for club, col in sorted(seen.items())]
     ax.legend(handles=handles, loc="lower left", fontsize=7.5,
-              framealpha=0.7, ncol=2, title="Klub", title_fontsize=8,
+              framealpha=0.7, ncol=2, title="Club", title_fontsize=8,
               bbox_to_anchor=(-0.01, 0))
 
     out = FIG_DIR / "fig17_echo_chamber.png"
-    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=180, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 
@@ -213,7 +189,7 @@ def fig18_bridge_mps(agreement, copresence, mp_ids, clubs, names,
             "mp_id":      mp_ids[i],
             "name":       names[i],
             "club":       club,
-            "bloc":       "Koalicja" if club in COALITION else "Opozycja",
+            "bloc":       "Coalition" if club in COALITION else "Opposition",
             "avg_coal":   avg_coal,
             "avg_oppo":   avg_oppo,
             "bridge_score": other_mean,  # absolute agreement with other side
@@ -222,34 +198,34 @@ def fig18_bridge_mps(agreement, copresence, mp_ids, clubs, names,
     bridge_df = pl.DataFrame(rows).sort("bridge_score", descending=True)
     bridge_df.write_parquet(ANALYSIS_DIR / "bridge_mps.parquet")
 
-    top_coal = (bridge_df.filter(pl.col("bloc") == "Koalicja")
+    top_coal = (bridge_df.filter(pl.col("bloc") == "Coalition")
                 .sort("bridge_score", descending=True).head(15))
-    top_oppo = (bridge_df.filter(pl.col("bloc") == "Opozycja")
+    top_oppo = (bridge_df.filter(pl.col("bloc") == "Opposition")
                 .sort("bridge_score", descending=True).head(15))
 
-    fig, axes = plt.subplots(1, 2, figsize=(15, 7), facecolor=BG)
-    fig.suptitle("Mostowi posłowie — największa zgodność z przeciwnym obozem  |  Kadencja X",
-                 fontsize=14, color=DARK, y=1.01)
+    fig, axes = plt.subplots(1, 2, figsize=(15, 7), facecolor="white")
+    fig.suptitle("Bridge MPs — highest agreement with the opposing bloc  |  Term X",
+                 fontsize=14, color=PALETTE["dark"], y=1.01)
 
     for ax, top, title in zip(axes,
                                [top_coal, top_oppo],
-                               ["Z koalicji → zgodność z opozycją",
-                                "Z opozycji → zgodność z koalicją"]):
-        ax.set_facecolor(BG2)
+                               ["From coalition → agreement with opposition",
+                                "From opposition → agreement with coalition"]):
+        ax.set_facecolor("white")
         names_t = top["name"].to_list()
         scores  = top["bridge_score"].to_numpy()
         clubs_t = top["club"].to_list()
-        own_avg = top["avg_coal" if title.startswith("Z koali") else "avg_oppo"].to_numpy()
+        own_avg = top["avg_coal" if title.startswith("From coal") else "avg_oppo"].to_numpy()
         y       = np.arange(len(names_t))
 
-        ax.barh(y, own_avg,    color="#CCCCCC", alpha=0.6, height=0.55, label="Własny obóz")
-        ax.barh(y, scores, color=RED, alpha=0.85, height=0.55, label="Przeciwny obóz")
+        ax.barh(y, own_avg,    color="#CCCCCC", alpha=0.6, height=0.55, label="Own bloc")
+        ax.barh(y, scores, color=PALETTE["accent"], alpha=0.85, height=0.55, label="Opposing bloc")
         for yi, (s, o) in enumerate(zip(scores, own_avg)):
-            ax.text(max(s, o) + 0.003, yi, f"{s:.3f}", va="center", fontsize=8, color=DARK)
+            ax.text(max(s, o) + 0.003, yi, f"{s:.3f}", va="center", fontsize=8, color=PALETTE["dark"])
 
         ax.set_yticks(y)
         ax.set_yticklabels([f"{n}  [{c}]" for n, c in zip(names_t, clubs_t)], fontsize=8.5)
-        ax.set_xlabel("Średnia zgodność głosowań", fontsize=10)
+        ax.set_xlabel("Mean voting agreement", fontsize=10)
         ax.set_title(title, fontsize=11)
         ax.invert_yaxis()
         ax.set_xlim(0.3, 1.0)
@@ -259,7 +235,7 @@ def fig18_bridge_mps(agreement, copresence, mp_ids, clubs, names,
 
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig18_bridge_mps.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
 
