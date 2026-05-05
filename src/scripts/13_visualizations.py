@@ -39,6 +39,45 @@ def _build_graph(agreement, copresence, mp_ids, id_to_club, thresh: float, min_c
     return G
 
 
+_LAYOUT_BLOCS = {
+    "coalition": {"KO", "PSL-TD", "Lewica", "Polska2050", "Polska2050-TD", "Razem"},
+    "opposition": {"PiS", "Konfederacja", "Konfederacja_KP"},
+}
+
+def _compact_layout(G, seed: int = 42) -> dict:
+    """
+    Club-seeded layout: initialise each node in a bloc-specific region so that
+    coalition (left half) and opposition (right half) start separated.
+    A short spring relaxation (unweighted) then spreads nodes within each bloc
+    without allowing dense cliques to collapse into a single ball.
+    """
+    import random as _random
+    rng = _random.Random(seed)
+    coalition  = _LAYOUT_BLOCS["coalition"]
+    opposition = _LAYOUT_BLOCS["opposition"]
+
+    # Assign initial positions by bloc (coalition left, opposition right, others centre)
+    init_pos: dict = {}
+    for node in G.nodes():
+        club = G.nodes[node].get("club", "niez.")
+        if club in coalition:
+            x = rng.uniform(-0.9, -0.05)
+            y = rng.uniform(-0.85, 0.85)
+        elif club in opposition:
+            x = rng.uniform(0.05, 0.9)
+            y = rng.uniform(-0.85, 0.85)
+        else:
+            x = rng.uniform(-0.12, 0.12)
+            y = rng.uniform(-0.85, 0.85)
+        init_pos[node] = np.array([x, y])
+
+    # Short unweighted relaxation — spreads within-bloc positions without
+    # collapsing dense cliques; few iterations prevent inter-bloc convergence
+    pos = nx.spring_layout(G, pos=init_pos, seed=seed,
+                           k=0.18, iterations=25, weight=None)
+    return pos
+
+
 def _draw_network_ax(ax, G, pos, node_colours, node_sizes, title: str, legend_handles=None):
     """Draw one network panel: black edges, club-coloured nodes."""
     ax.set_facecolor("white")
@@ -50,6 +89,13 @@ def _draw_network_ax(ax, G, pos, node_colours, node_sizes, title: str, legend_ha
     nx.draw_networkx_nodes(G, pos, ax=ax, node_color=node_colours,
                            node_size=node_sizes, linewidths=0.3,
                            edgecolors="#000000", alpha=0.92)
+    # Set tight axis limits around actual node positions (with small padding)
+    if pos:
+        all_xs = [p[0] for p in pos.values()]
+        all_ys = [p[1] for p in pos.values()]
+        pad = max(max(all_xs) - min(all_xs), max(all_ys) - min(all_ys)) * 0.06 + 0.02
+        ax.set_xlim(min(all_xs) - pad, max(all_xs) + pad)
+        ax.set_ylim(min(all_ys) - pad, max(all_ys) + pad)
     ax.set_title(title, fontsize=13, pad=12, color=PALETTE["dark"])
     if legend_handles:
         ax.legend(handles=legend_handles, loc="lower left", fontsize=8,
@@ -75,7 +121,7 @@ def fig1_network():
         n_nodes, n_edges = G.number_of_nodes(), G.number_of_edges()
         print(f"    thresh={thresh:.0%}: {n_nodes} nodes (−{len(isolates)} isolated), {n_edges:,} edges")
 
-        pos = nx.spring_layout(G, seed=42, k=0.3, iterations=80, weight="weight")
+        pos = _compact_layout(G, seed=42)
 
         # ── club-coloured variant ───────────────────────────────────────────
         node_colours = [cc(G.nodes[n]["club"]) for n in G.nodes()]
@@ -313,8 +359,26 @@ def fig5_cohesion():
 
     all_months = sorted(df["year_month"].unique().to_list())
 
-    fig, ax = plt.subplots(figsize=(13, 6), facecolor="white")
+    # ── political context periods: (start, end, label, colour) ──────────────
+    PERIODS = [
+        ("2024-01", "2024-04", "Farmers'\nstrikes",      "#b5651d"),
+        ("2024-06", "2024-09", "Konfederacja\nsplit",     "#9467bd"),
+        ("2025-01", "2025-06", "Presidential\ncampaign", PALETTE["accent"]),
+    ]
+
+    fig, ax = plt.subplots(figsize=(15, 6.5), facecolor="white")
     ax.set_facecolor("white")
+
+    # Shade periods behind data lines
+    for start, end, label, col in PERIODS:
+        xs = all_months.index(start) if start in all_months else -0.5
+        xe = all_months.index(end)   if end   in all_months else len(all_months) - 0.5
+        ax.axvspan(xs - 0.5, xe + 0.5, color=col, alpha=0.10, zorder=0)
+        ax.axvline(xs - 0.5, color=col, linewidth=1.4, linestyle="--", alpha=0.55, zorder=1)
+        ax.axvline(xe + 0.5, color=col, linewidth=1.4, linestyle="--", alpha=0.55, zorder=1)
+        ax.text((xs + xe) / 2, 1.025, label, color=col, fontsize=8.5,
+                ha="center", va="bottom", fontweight="bold",
+                transform=ax.get_xaxis_transform())
 
     line_styles = ["-", "--", "-.", ":", "-", "--", "-."]
     for i, club in enumerate(main_clubs):
@@ -325,7 +389,8 @@ def fig5_cohesion():
         vals   = sub["cohesion_score"].to_list()
         x_pos  = [all_months.index(m) for m in months]
         ax.plot(x_pos, vals, color=cc(club), linewidth=2.2, label=club,
-                marker="o", markersize=4.5, alpha=0.92, linestyle=line_styles[i % len(line_styles)])
+                marker="o", markersize=4.5, alpha=0.92,
+                linestyle=line_styles[i % len(line_styles)], zorder=2)
 
     ax.set_xticks(range(len(all_months)))
     ax.set_xticklabels(all_months, rotation=45, ha="right", fontsize=8)
@@ -334,12 +399,89 @@ def fig5_cohesion():
     ax.set_yticks(np.arange(0.75, 1.01, 0.05))
     ax.set_yticklabels([f"{v:.0%}" for v in np.arange(0.75, 1.01, 0.05)], fontsize=9)
     ax.set_title("Intra-party cohesion over time  |  Term X", fontsize=13)
-    ax.grid(alpha=0.25)
+    ax.grid(alpha=0.20, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
-    ax.legend(fontsize=9.5, framealpha=0.5, ncol=2, loc="lower left")
+    ax.legend(fontsize=9.5, framealpha=0.6, ncol=2, loc="lower left")
 
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig5_cohesion.png"
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    print(f"    saved {out}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FIG 5b — Cohesion zoom: pre-presidential election period
+# ═══════════════════════════════════════════════════════════════════════════════
+def fig5_cohesion_presidential_zoom():
+    print("  fig5b: cohesion zoom (presidential election) …")
+    df = pl.read_parquet(ANALYSIS_DIR / "party_cohesion_by_month.parquet")
+    main_clubs = ["KO", "PiS", "PSL-TD", "Lewica", "Polska2050-TD", "Konfederacja", "Razem"]
+    df = df.filter(pl.col("club").cast(pl.Utf8).is_in(main_clubs))
+
+    # Zoom window: 2024-09 to 2025-07 (3 months before and after election)
+    ZOOM_START = "2024-09"
+    ZOOM_END   = "2025-07"
+    all_months = sorted(df["year_month"].unique().to_list())
+    zoom_months = [m for m in all_months if ZOOM_START <= m <= ZOOM_END]
+
+    # Presidential election dates
+    ROUND1 = "2025-05"   # 18 May 2025
+    ROUND2 = "2025-06"   # 1 June 2025
+
+    fig, ax = plt.subplots(figsize=(13, 6.5), facecolor="white")
+    ax.set_facecolor("white")
+
+    line_styles = ["-", "--", "-.", ":", "-", "--", "-."]
+    for i, club in enumerate(main_clubs):
+        sub = (df.filter(pl.col("club").cast(pl.Utf8) == club)
+                 .sort("year_month")
+                 .filter(pl.col("year_month").is_in(zoom_months)))
+        if len(sub) == 0:
+            continue
+        months = sub["year_month"].to_list()
+        vals   = sub["cohesion_score"].to_list()
+        x_pos  = [zoom_months.index(m) for m in months]
+        ax.plot(x_pos, vals, color=cc(club), linewidth=2.4, label=club,
+                marker="o", markersize=6, alpha=0.93,
+                linestyle=line_styles[i % len(line_styles)])
+
+    # Mark election rounds
+    for rnd_month, label, offset in [
+        (ROUND1, "Round 1\n18 May", -0.35),
+        (ROUND2, "Round 2\n1 Jun",  +0.15),
+    ]:
+        if rnd_month in zoom_months:
+            xv = zoom_months.index(rnd_month)
+            ax.axvline(xv, color=PALETTE["accent"], linewidth=1.8,
+                       linestyle="--", alpha=0.75, zorder=3)
+            ax.text(xv + offset, 0.745, label, color=PALETTE["accent"],
+                    fontsize=8.5, ha="left", va="bottom", style="italic")
+
+    # Shade the two election months
+    for rnd_month in [ROUND1, ROUND2]:
+        if rnd_month in zoom_months:
+            xv = zoom_months.index(rnd_month)
+            ax.axvspan(xv - 0.5, xv + 0.5,
+                       color=PALETTE["accent"], alpha=0.06, zorder=0)
+
+    ax.set_xticks(range(len(zoom_months)))
+    ax.set_xticklabels(zoom_months, rotation=45, ha="right", fontsize=9.5)
+    ax.set_ylabel("Voting cohesion (Rice index)", fontsize=11)
+    ax.set_ylim(0.72, 1.03)
+    ax.set_yticks(np.arange(0.75, 1.01, 0.05))
+    ax.set_yticklabels([f"{v:.0%}" for v in np.arange(0.75, 1.01, 0.05)], fontsize=9.5)
+    ax.set_title(
+        "Intra-party cohesion — run-up to presidential election  |  Term X\n"
+        "Dashed lines = election rounds  (18 May · 1 Jun 2025)",
+        fontsize=13, pad=12,
+    )
+    ax.grid(alpha=0.25)
+    ax.spines[["top", "right"]].set_visible(False)
+    ax.legend(fontsize=10, framealpha=0.6, ncol=2, loc="lower left")
+
+    fig.tight_layout(pad=1.2)
+    out = FIG_DIR / "fig5b_cohesion_presidential_zoom.png"
     fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close(fig)
     print(f"    saved {out}")
@@ -550,7 +692,7 @@ def fig1_community_betweenness(thresh: float = 0.70):
     print(f"    mismatches: {n_mismatches}/{n} ({100*n_mismatches/n:.1f}%)")
 
     # ── layout ────────────────────────────────────────────────────────────────
-    pos = nx.spring_layout(G, seed=42, k=0.28, iterations=120, weight="weight")
+    pos = _compact_layout(G, seed=42)
 
     # ── draw ──────────────────────────────────────────────────────────────────
     fig, ax = plt.subplots(figsize=(16, 13), facecolor="white")
@@ -568,6 +710,13 @@ def fig1_community_betweenness(thresh: float = 0.70):
                    s=node_sizes[i], c=node_fill[i],
                    edgecolors=node_border[i], linewidths=border_widths[i],
                    alpha=0.92, zorder=2)
+
+    # Set tight axis limits
+    all_xs = [p[0] for p in pos.values()]
+    all_ys = [p[1] for p in pos.values()]
+    pad = max(max(all_xs) - min(all_xs), max(all_ys) - min(all_ys)) * 0.06 + 0.02
+    ax.set_xlim(min(all_xs) - pad, max(all_xs) + pad)
+    ax.set_ylim(min(all_ys) - pad, max(all_ys) + pad)
 
     # Annotate top-12 by betweenness
     top12 = sorted(bt.items(), key=lambda x: x[1], reverse=True)[:12]
@@ -636,6 +785,7 @@ if __name__ == "__main__":
     fig3_rebels()
     fig4_temporal()
     fig5_cohesion()
+    fig5_cohesion_presidential_zoom()
     fig6_topics()
     fig1_network()
     fig1_community_betweenness(thresh=0.70)
