@@ -24,8 +24,8 @@ def _term_dir(term: int) -> Path:
 
 
 def load_mps(term: int) -> pl.DataFrame:
-    """Load mps.parquet for the given term."""
-    return pl.read_parquet(_term_dir(term) / "mps.parquet")
+    """Load mps.parquet for the given term (only active MPs)."""
+    return pl.read_parquet(_term_dir(term) / "mps.parquet").filter(pl.col("active"))
 
 
 def load_votings(term: int) -> pl.DataFrame:

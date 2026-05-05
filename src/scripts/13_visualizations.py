@@ -407,6 +407,72 @@ def fig6_topics():
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# FIG 10 — Edges vs agreement threshold
+# ═══════════════════════════════════════════════════════════════════════════════
+def fig10_edges_vs_threshold():
+    print("  fig10: edges vs threshold …")
+    agreement  = np.load(NETWORKS_DIR / "agreement_matrix.npy")
+    copresence = np.load(NETWORKS_DIR / "copresence_matrix.npy")
+
+    MIN_COP = 50
+    mask = np.triu(copresence >= MIN_COP, k=1)  # valid pairs (upper triangle)
+    valid_agreement = agreement[mask]
+
+    thresholds = np.arange(0.0, 1.001, 0.01)
+    n_edges = [(valid_agreement >= t).sum() for t in thresholds]
+    max_edges = int(mask.sum())
+
+    fig, ax1 = plt.subplots(figsize=(11, 5.5), facecolor=BG)
+    ax1.set_facecolor(BG2)
+
+    ax1.plot(thresholds, n_edges, color=RED, linewidth=2.5)
+    ax1.fill_between(thresholds, n_edges, alpha=0.12, color=RED)
+
+    for t in [0.30, 0.50, 0.70, 0.90]:
+        n = int((valid_agreement >= t).sum())
+        ax1.axvline(t, color=GREY, linewidth=1.0, linestyle="--", alpha=0.7)
+        ax1.annotate(f"{t:.0%}\n{n:,}", xy=(t, n),
+                     xytext=(6, 6), textcoords="offset points",
+                     fontsize=8.5, color=GREY)
+
+    ax2 = ax1.twinx()
+    ax2.set_facecolor(BG2)
+    density = [e / max_edges for e in n_edges]
+    ax2.plot(thresholds, density, color=RED_LIGHT, linewidth=1.5, linestyle=":")
+    ax2.set_ylabel("Gęstość grafu", fontsize=10, color=GREY)
+    ax2.tick_params(colors=GREY)
+    ax2.set_ylim(0, 1.05)
+    ax2.yaxis.set_tick_params(labelcolor=GREY)
+
+    ax1.set_xlabel("Próg zgodności głosowań", fontsize=11)
+    ax1.set_ylabel("Liczba krawędzi", fontsize=11)
+    ax1.set_xlim(0, 1)
+    ax1.set_ylim(0, max_edges * 1.05)
+    ax1.xaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=1))
+    ax1.yaxis.set_major_formatter(mpl.ticker.FuncFormatter(lambda x, _: f"{int(x):,}"))
+    ax1.set_title(
+        f"Liczba krawędzi w sieci w zależności od progu zgodności\n"
+        f"Kadencja X  |  {len(agreement)} posłów  ·  {max_edges:,} par z min. {MIN_COP} wspólnych głosowań",
+        fontsize=13, pad=12,
+    )
+    ax1.grid(alpha=0.25)
+    ax1.spines[["top", "right"]].set_visible(False)
+
+    from matplotlib.lines import Line2D
+    legend_handles = [
+        Line2D([0], [0], color=RED, linewidth=2.5, label="Liczba krawędzi"),
+        Line2D([0], [0], color=RED_LIGHT, linewidth=1.5, linestyle=":", label="Gęstość grafu"),
+    ]
+    ax1.legend(handles=legend_handles, fontsize=9.5, framealpha=0.5, loc="upper right")
+
+    fig.tight_layout(pad=1.2)
+    out = FIG_DIR / "fig10_edges_vs_threshold.png"
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor=BG)
+    plt.close(fig)
+    print(f"    saved {out}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     print("Generating poster figures …")
     fig2_heatmap()
@@ -415,4 +481,5 @@ if __name__ == "__main__":
     fig5_cohesion()
     fig6_topics()
     fig1_network()
+    fig10_edges_vs_threshold()
     print(f"\nAll figures saved to {FIG_DIR}")
