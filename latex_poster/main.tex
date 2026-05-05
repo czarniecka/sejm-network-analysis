@@ -1,0 +1,71 @@
+\documentclass[a0paper, portrait]{tikzposter}
+
+% --- PAKIETY ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{polski}
+\usepackage{amsfonts, amsmath, amssymb}
+\usepackage{graphicx}
+
+% --- KOLORY PWR ---
+\definecolor{PWrRed}{HTML}{AA151B}
+\definecolor{PWrGrey}{HTML}{333333}
+
+% --- STYLIZACJA ---
+\usetheme{Default}
+\useblockstyle[bodyinnersep=0.4cm, titleinnersep=0.2cm]{Minimal}
+\colorlet{backgroundcolor}{white}
+\colorlet{blocktitlefgcolor}{PWrRed}
+\colorlet{blocktitlebgcolor}{white}
+\usetitlestyle{Empty} 
+
+% --- NAGŁÓWEK ---
+\settitle{
+    \begin{minipage}{\textwidth}
+        \begin{minipage}{0.12\textwidth}
+            \raggedright 
+            \includegraphics[width=0.6\linewidth]{logo_pwr.jpg}
+        \end{minipage}
+        \begin{minipage}{0.85\textwidth}
+            \raggedright
+            \color{PWrGrey}
+            {\fontsize{64}{72} \selectfont \bfseries Parliamentary Network Analysis using Sejm RP API \par}
+            \vspace{0.4cm}
+            {\fontsize{36}{42} \selectfont Michał Bortkiewicz \quad Aleksandra Czarniecka \quad Mikołaj Drojma \par}
+            \vspace{0.2cm}
+            {\fontsize{24}{28} \selectfont Politechnika Wrocławska \quad | \quad Wydział Informatyki i Telekomunikacji \par}
+        \end{minipage}
+    \end{minipage}
+}
+
+\title{Parliamentary Network Analysis using Sejm RP API}
+\author{Michał Bortkiewicz \quad Aleksandra Czarniecka \quad Mikołaj Drojma}
+
+\begin{document}
+
+\maketitle[titletoblockverticalspace=0cm]
+
+\begin{columns}
+    \column{0.5}
+    \input{sekcja1_methodology}
+    
+    \column{0.5}
+    \input{sekcja2_dynamics}
+\end{columns}
+
+\vspace{0.1cm}
+
+\input{sekcja3_main_graph}
+
+\vspace{0.1cm}
+
+\begin{columns}
+    \column{0.5}
+    \input{sekcja4_temporal}
+
+    \column{0.5}
+    \input{sekcja5_bert}
+\end{columns}
+
+
+\end{document}

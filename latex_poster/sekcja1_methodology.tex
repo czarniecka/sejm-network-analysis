@@ -1,0 +1,34 @@
+\block{1. Methodology}{
+    \vspace{0.2cm}
+    \textbf{Data Acquisition \& Preprocessing:} \\
+    Individual voting records for all active Members of Parliament (MPs) were retrieved from the official API of the Polish Sejm (10th term). Preprocessing involved filtering out non-active members and normalizing absence records to focus on ideological alignment.
+
+    \vspace{0.4cm}
+    \textbf{Network Modeling:} \\
+    The system is modeled as an undirected, weighted graph $G = (V, E)$, where:
+    \begin{itemize}
+        \item $V$: Represents individual MPs (Nodes).
+        \item $E$: Represents the voting consensus strength (Edges).
+    \end{itemize}
+
+    \vspace{0.4cm}
+    \textbf{Similarity Metric (Consensus Index):} \\
+    The relationship strength $S_{ij}$ between MP $i$ and MP $j$ is defined as the ratio of identical voting decisions to the total number of shared voting events:
+    
+    \begin{equation*}
+        S_{ij} = \frac{\sum_{k \in \mathcal{V}_{ij}} \mathbb{I}(v_{ik} = v_{jk})}{|\mathcal{V}_{ij}|}
+    \end{equation*}
+
+    \vspace{0.4cm}
+    \textbf{Dataset Overview:}
+    \begin{itemize}
+        \item \textbf{459} active Members of Parliament analysed
+        \item \textbf{105,101} MP pairs with $\geq$50 shared votes
+        \item \textbf{10} parliamentary clubs tracked over the full term
+        \item Source: official Sejm RP API, Term X (2023--present)
+    \end{itemize}
+
+    \vspace{0.4cm}
+    \textbf{Conclusions:}\\
+    The consensus-based network model captures ideological alignment without requiring explicit party declarations. Edge weights encode behavioural similarity rather than formal affiliation — making the analysis robust to party splits and coalition shifts.
+}
