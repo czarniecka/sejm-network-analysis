@@ -1,16 +1,17 @@
 \block{4. Structural Analysis: Community Detection}{
     \centering
-    \includegraphics[width=0.85\linewidth]{fig1_community_betweenness_99.png}\\[0.3cm]
-    \small\textit{Leiden community structure vs.\ official party clubs at 99\% threshold.
+    \textbf{Leiden Community Detection · Threshold 99\%}\\[0.2cm]
+    \includegraphics[width=0.76\linewidth]{fig1_community_betweenness_99.png}\\[0.2cm]
+    \textit{Leiden community structure vs.\ official party clubs at 99\% threshold.
     Fill = community colour (majority club), border = official club, thick border = mismatch, node size = betweenness centrality.}
     \vspace{0.3cm}
 
     \flushleft
     \textbf{Key Findings:}
     \begin{itemize}
-        \item \textbf{Near-perfect alignment:} NMI(Leiden, club)\,=\,0.971 — unsupervised communities recover official party clubs with 97\% accuracy purely from voting behaviour.
-        \item \textbf{Only 15 mismatches (4.2\%):} MPs classified to a different community than their official club are likely rebel voters or recent party-switchers.
-        \item \textbf{Betweenness centrality:} Larger nodes act as intra-party bridges — key MPs whose removal would fragment their cluster's internal connectivity.
-        \item \textbf{8 communities detected:} Coalition splits into sub-communities (KO, Lewica, PSL-TD/P2050), revealing programmatic tension within the governing majority.
+        \item \textbf{Near-perfect alignment:} NMI\,=\,0.971 — Leiden communities recover official clubs with 97\% accuracy from voting topology alone, with no party labels.
+        \item \textbf{Two-level structure:} At 70\% threshold Leiden finds only 3 blocs (coalition acts as one entity); at 99\% it finds 8 — party sub-structure emerges only under strict ideological purity.
+        \item \textbf{Bridge MPs (15 mismatches, 4.2\%):} MPs whose network community differs from their official club — likely rebel voters or recent party-switchers. See table in figure.
+        \item \textbf{Main conclusion:} \textit{``Voting in the Polish Sejm is organized primarily along coalition--opposition lines; intra-bloc party distinctions emerge only at the highest agreement thresholds.''}
     \end{itemize}
 }

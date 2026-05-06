@@ -1,16 +1,18 @@
-\block{5. Structural Embedding: Coalition vs.\ Opposition}{
+\block{5. Structural Embedding: Spectral Analysis}{
     \centering
-    \includegraphics[height=24cm]{fig32_club_only.png}
-    \vspace{0.3cm}
+    \textbf{Laplacian Spectral Embedding}\\[0.2cm]
+    \includegraphics[width=0.85\linewidth]{fig31_spectral_embedding.png}
+    \vspace{0.15cm}
 
     \flushleft
-    \textbf{Method:} t-SNE applied to the raw voting agreement vectors of all 459 MPs — \emph{no party labels used during embedding}.
+    \textbf{Method:} Eigenvectors of the normalised graph Laplacian. \emph{No party labels used — node positions derived purely from voting topology.}
 
-    \vspace{0.4cm}
-    \textbf{Key Findings:}
+    \vspace{0.2cm}
+    \textbf{What the panels reveal:}
     \begin{itemize}
-        \item \textbf{Self-organisation:} MPs cluster by party purely from voting behaviour, confirming that ideological affiliation is the dominant driver of parliamentary decisions.
-        \item \textbf{Clear Divide:} Coalition (red) and opposition (dark) separate with a Silhouette score of \textbf{0.680} — a strong and statistically significant split.
-        \item \textbf{Bridge MPs:} A small set of independents and \textit{Demokracja} MPs appear in the border zone, acting as potential cross-bloc mediators.
+        \item \textbf{Ev2 — Fiedler vector ($\lambda=0.530$):} Optimal binary graph cut. Cleanly separates \textbf{coalition from opposition}. The large spectral gap ($\lambda_1\!\approx\!0 \to \lambda_2\!=\!0.530$) confirms a structurally sharp, stable divide.
+        \item \textbf{Ev3 ($\lambda=0.946$):} Intra-bloc sub-structure — within the coalition, Lewica and Razem separate from the KO/PSL-TD/Polska2050 core.
+        \item \textbf{Ev4 ($\lambda=0.995$):} Near-disconnected sub-communities — individual party identities emerge. KO, PiS, and Konfederacja become isolated islands, confirming that \textbf{party identity is secondary} to the coalition--opposition axis.
+        \item \textit{``The graph's own geometry recovers the political divide — no labels needed.''}
     \end{itemize}
 }

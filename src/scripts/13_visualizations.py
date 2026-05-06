@@ -355,9 +355,8 @@ def fig5_cohesion():
     print("  fig5: cohesion …")
     df = pl.read_parquet(ANALYSIS_DIR / "party_cohesion_by_month.parquet")
     main_clubs = ["KO", "PiS", "PSL-TD", "Lewica", "Polska2050-TD", "Konfederacja", "Razem"]
+    all_months = sorted(df["year_month"].unique().to_list())  # full range before club filter
     df = df.filter(pl.col("club").cast(pl.Utf8).is_in(main_clubs))
-
-    all_months = sorted(df["year_month"].unique().to_list())
 
     # ── political context periods: (start, end, label, colour) ──────────────
     PERIODS = [
@@ -392,13 +391,13 @@ def fig5_cohesion():
                 marker="o", markersize=4.5, alpha=0.92,
                 linestyle=line_styles[i % len(line_styles)], zorder=2)
 
-    ax.set_xticks(range(len(all_months)))
-    ax.set_xticklabels(all_months, rotation=45, ha="right", fontsize=8)
+    ax.set_xticks(range(0, len(all_months), 3))
+    ax.set_xticklabels(all_months[::3], rotation=45, ha="right", fontsize=8)
     ax.set_ylabel("Voting cohesion (Rice index)", fontsize=10)
     ax.set_ylim(0.72, 1.03)
     ax.set_yticks(np.arange(0.75, 1.01, 0.05))
     ax.set_yticklabels([f"{v:.0%}" for v in np.arange(0.75, 1.01, 0.05)], fontsize=9)
-    ax.set_title("Intra-party cohesion over time  |  Term X", fontsize=13)
+    # title removed — section heading is provided by the poster layout
     ax.grid(alpha=0.20, zorder=0)
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(fontsize=9.5, framealpha=0.6, ncol=2, loc="lower left")
@@ -471,11 +470,7 @@ def fig5_cohesion_presidential_zoom():
     ax.set_ylim(0.72, 1.03)
     ax.set_yticks(np.arange(0.75, 1.01, 0.05))
     ax.set_yticklabels([f"{v:.0%}" for v in np.arange(0.75, 1.01, 0.05)], fontsize=9.5)
-    ax.set_title(
-        "Intra-party cohesion — run-up to presidential election  |  Term X\n"
-        "Dashed lines = election rounds  (18 May · 1 Jun 2025)",
-        fontsize=13, pad=12,
-    )
+    # title removed — section heading is provided by the poster layout
     ax.grid(alpha=0.25)
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(fontsize=10, framealpha=0.6, ncol=2, loc="lower left")
@@ -723,15 +718,15 @@ def fig1_community_betweenness(thresh: float = 0.70):
     for node_id, _ in top12:
         row = mps_df.filter(pl.col("mp_id") == node_id)
         name = f"{row['first_name'][0][0]}. {row['last_name'][0]}" if len(row) > 0 else str(node_id)
-        ax.annotate(name, pos[node_id], xytext=(0, 6), textcoords="offset points",
-                    fontsize=6.5, ha="center", color=PALETTE["dark"],
+        ax.annotate(name, pos[node_id], xytext=(0, 7), textcoords="offset points",
+                    fontsize=8, ha="center", color=PALETTE["dark"],
                     fontweight="bold", zorder=5)
 
     # ── legends ───────────────────────────────────────────────────────────────
     comm_sizes   = Counter(comm_labels)
     sorted_comms = sorted(comm_sizes, key=lambda c: comm_sizes[c], reverse=True)
 
-    # Community legend: fill = community colour, border = same (clean patch)
+    # Community legend: fill = community colour
     comm_handles = [
         mpatches.Patch(
             facecolor=comm_fill_colour[c],
@@ -741,54 +736,80 @@ def fig1_community_betweenness(thresh: float = 0.70):
         for c in sorted_comms
     ]
     leg1 = ax.legend(handles=comm_handles, loc="lower left",
-                     title="Leiden communities  (fill colour)", title_fontsize=9,
-                     fontsize=7.5, framealpha=0.88, ncol=2,
+                     title="Leiden communities  (fill colour)", title_fontsize=11,
+                     fontsize=10, framealpha=0.88, ncol=2,
                      bbox_to_anchor=(0.0, 0.0))
 
-    # Club border legend: grey fill + club-coloured border
+    # Club border legend
     border_handles = [
-        mpatches.Patch(
-            facecolor="#dddddd", edgecolor=cc(club), linewidth=2,
-            label=club,
-        )
+        mpatches.Patch(facecolor="#dddddd", edgecolor=cc(club), linewidth=2, label=club)
         for club in MAIN_CLUBS
     ] + [
-        mpatches.Patch(
-            facecolor="#dddddd", edgecolor="#333333", linewidth=2.5,
-            label=f"Mismatch border  (n={n_mismatches})",
-        ),
+        mpatches.Patch(facecolor="#dddddd", edgecolor="#333333", linewidth=2.5,
+                       label=f"Mismatch border  (n={n_mismatches})"),
     ]
     ax.add_artist(leg1)
-    ax.legend(handles=border_handles, loc="lower right",
-              title="Official club  (border colour)", title_fontsize=9,
-              fontsize=7.5, framealpha=0.88, ncol=2)
+    # Club border legend moved to upper-left (above community legend)
+    ax.legend(handles=border_handles, loc="upper left",
+              title="Official club  (border colour)", title_fontsize=11,
+              fontsize=10, framealpha=0.88, ncol=2)
 
-    ax.set_title(
-        f"Leiden community structure vs. party clubs  |  Term X  |  threshold {int(thresh*100)}%\n"
-        f"Fill = Leiden community colour (majority club)   ·   Border = official club   ·   "
-        f"Thick border = mismatch   ·   Size = betweenness centrality\n"
-        f"NMI(Leiden, club) = {nmi:.3f}   ·   {n_comms} communities   ·   "
-        f"{n_mismatches} mismatches ({100*n_mismatches/n:.1f}%)",
-        fontsize=11, pad=14, color=PALETTE["dark"],
-    )
+    # title removed — provided by poster layout
     fig.tight_layout(pad=0.8)
+
+    # ── bridge MP table: placed AFTER tight_layout in absolute figure coords ──
+    # This guarantees true bottom-right positioning independent of axes layout.
+    mismatch_items = sorted(
+        [(v, bt[v], id_to_club.get(v, "niez."))
+         for v in nodes if is_mismatch(v)],
+        key=lambda x: -x[1]
+    )[:10]
+    table_rows = []
+    for rank, (node_id, bt_val, actual_club) in enumerate(mismatch_items, 1):
+        row = mps_df.filter(pl.col("mp_id") == node_id)
+        name = f"{row['first_name'][0][0]}. {row['last_name'][0]}" if len(row) > 0 else str(node_id)
+        table_rows.append([str(rank), name, actual_club, f"{bt_val:.4f}"])
+
+    if table_rows:
+        # inset_axes with bottom=0.0 pins table to the axes bottom edge,
+        # the same level as the community legend (loc="lower left")
+        t_ax = ax.inset_axes([0.63, 0.025, 0.36, 0.16])
+        t_ax.axis("off")
+        t_ax.set_title("Top-10 Bridge MPs by betweenness centrality",
+                       fontsize=9, pad=3, color=PALETTE["dark"],
+                       fontweight="bold", loc="left")
+        tbl = t_ax.table(
+            cellText=table_rows,
+            colLabels=["#", "MP", "Club", "Btw."],
+            cellLoc="left", loc="upper center",
+        )
+        tbl.auto_set_font_size(False)
+        tbl.set_fontsize(7.5)
+        tbl.scale(1, 1.22)
+        col_widths = [0.06, 0.42, 0.32, 0.20]
+        for (r, c), cell in tbl.get_celld().items():
+            cell.set_width(col_widths[c])
+            cell.PAD = 0.02
+        for j in range(4):
+            tbl[0, j].set_facecolor(PALETTE.get("primary", "#AA151B"))
+            tbl[0, j].set_text_props(color="white", fontweight="bold")
+        for i in range(1, len(table_rows) + 1):
+            for j in range(4):
+                tbl[i, j].set_facecolor("#f5f5f5" if i % 2 == 0 else "white")
+
     out = FIG_DIR / f"fig1_community_betweenness_{int(thresh*100)}.png"
-    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
+    fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white", pad_inches=0.05)
     plt.close(fig)
     print(f"    saved {out}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
-    print("Generating poster figures …")
-    fig2_heatmap()
-    fig3_rebels()
-    fig4_temporal()
+    print("Regenerating modified figures …")
     fig5_cohesion()
     fig5_cohesion_presidential_zoom()
-    fig6_topics()
-    fig1_network()
-    fig1_community_betweenness(thresh=0.70)
     fig1_community_betweenness(thresh=0.99)
-    fig10_edges_vs_threshold()
-    print(f"\nAll figures saved to {FIG_DIR}")
+    print(f"\nDone. Figures saved to {FIG_DIR}")
+    # Full regeneration (uncomment to rebuild all):
+    # fig2_heatmap(); fig3_rebels(); fig4_temporal(); fig6_topics()
+    # fig1_network(); fig1_community_betweenness(thresh=0.70); fig10_edges_vs_threshold()

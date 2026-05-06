@@ -161,10 +161,10 @@ def fig11_attendance_by_club(per_mp: pl.DataFrame) -> None:
 
 def fig12_attendance_over_time(monthly: pl.DataFrame) -> None:
     print("  fig12: attendance over time …")
+    all_months = sorted(monthly["year_month"].unique().to_list())  # full range before club filter
     df = monthly.filter(pl.col("club").cast(pl.Utf8).is_in(MAIN_CLUBS))
-    all_months = sorted(df["year_month"].unique().to_list())
 
-    fig, ax = plt.subplots(figsize=(13, 6), facecolor="white")
+    fig, ax = plt.subplots(figsize=(15, 6.5), facecolor="white")
     ax.set_facecolor("white")
 
     ls = ["-", "--", "-.", ":", "-", "--", "-."]
@@ -184,7 +184,7 @@ def fig12_attendance_over_time(monthly: pl.DataFrame) -> None:
     ax.set_ylabel("Attendance rate", fontsize=10)
     ax.yaxis.set_major_formatter(mpl.ticker.PercentFormatter(xmax=1))
     ax.set_ylim(0.55, 1.02)
-    ax.set_title("Club attendance over time  |  Term X", fontsize=13, pad=12)
+    # title removed — provided by poster layout
     ax.grid(alpha=0.25)
     ax.spines[["top", "right"]].set_visible(False)
     ax.legend(fontsize=9, ncol=2, framealpha=0.5)
@@ -262,14 +262,7 @@ def fig13_strategic_absence(strat: pl.DataFrame) -> None:
 
 
 if __name__ == "__main__":
-    print("Script 15 — Attendance analysis …")
-    per_mp, monthly = build_attendance()
-    per_mp.write_parquet(ANALYSIS_DIR / "attendance_per_mp.parquet")
-    monthly.write_parquet(ANALYSIS_DIR / "attendance_monthly.parquet")
-    strat = build_strategic_absence()
-    strat.write_parquet(ANALYSIS_DIR / "strategic_absence.parquet")
-
-    fig11_attendance_by_club(per_mp)
+    print("Script 15 — Regenerating fig12 …")
+    _, monthly = build_attendance()
     fig12_attendance_over_time(monthly)
-    fig13_strategic_absence(strat)
     print(f"\nDone. Figures in {FIG_DIR}")

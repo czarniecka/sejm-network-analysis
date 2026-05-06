@@ -154,12 +154,12 @@ def _scatter_plot(ax, x, y, clubs, names, title: str,
 def fig31_spectral_embedding(evecs: np.ndarray, evals: np.ndarray,
                                clubs: list, names: list) -> None:
     print("  fig31: spectral embedding …")
-    # 4 panels: (ev1, ev2), (ev1, ev3), (ev2, ev3), (ev3, ev4)
-    pairs = [(0, 1), (0, 2), (1, 2), (2, 3)] if evecs.shape[1] >= 4 else [(0, 1)]
+    # 2 panels: Fiedler (ev2 vs ev3) + next split (ev2 vs ev4)
+    pairs = [(0, 1), (0, 2)]
 
-    fig = plt.figure(figsize=(15, 13), facecolor="white")
-    gs  = gridspec.GridSpec(2, 2, figure=fig, hspace=0.38, wspace=0.32)
-    axes = [fig.add_subplot(gs[i // 2, i % 2]) for i in range(len(pairs))]
+    fig = plt.figure(figsize=(15, 7), facecolor="white")
+    gs  = gridspec.GridSpec(1, 2, figure=fig, wspace=0.32)
+    axes = [fig.add_subplot(gs[0, i]) for i in range(len(pairs))]
 
     for ax, (d1, d2) in zip(axes, pairs):
         ax.set_facecolor("white")
@@ -178,11 +178,7 @@ def fig31_spectral_embedding(evecs: np.ndarray, evals: np.ndarray,
     fig.legend(handles=handles, fontsize=8.5, loc="lower center",
                ncol=6, framealpha=0.6, bbox_to_anchor=(0.5, -0.02))
 
-    fig.suptitle(
-        "Laplacian Spectral Embedding of the voting network  |  Term X\n"
-        "Node positions determined solely from network topology (no party labels)",
-        fontsize=14, color=PALETTE["dark"], y=1.01,
-    )
+    # suptitle removed — provided by poster layout
     fig.tight_layout(pad=1.2)
     out = FIG_DIR / "fig31_spectral_embedding.png"
     fig.savefig(out, dpi=200, bbox_inches="tight", facecolor="white")
@@ -261,29 +257,11 @@ def fig32_tsne_embedding(tsne_coords: np.ndarray, clubs: list, names: list) -> N
 
 
 if __name__ == "__main__":
-    print("Script 24 — Graph embedding …")
+    print("Script 24 — Graph embedding (fig31 only) …")
     ANALYSIS_DIR.mkdir(parents=True, exist_ok=True)
     agreement, copresence, mp_ids, clubs, names = load_data()
 
     evecs, evals = spectral_embedding(agreement, copresence, n_components=4)
-    emb_df = pl.DataFrame({
-        "mp_id":  mp_ids,
-        "club":   clubs,
-        "ev1":    evecs[:, 0].tolist(),
-        "ev2":    evecs[:, 1].tolist(),
-        "ev3":    evecs[:, 2].tolist() if evecs.shape[1] > 2 else [0.0] * len(mp_ids),
-    })
-    emb_df.write_parquet(ANALYSIS_DIR / "spectral_embedding.parquet")
     fig31_spectral_embedding(evecs, evals, clubs, names)
-
-    tsne_coords = tsne_embedding(agreement, copresence)
-    if tsne_coords is not None:
-        tsne_df = pl.DataFrame({
-            "mp_id": mp_ids, "club": clubs,
-            "tsne1": tsne_coords[:, 0].tolist(),
-            "tsne2": tsne_coords[:, 1].tolist(),
-        })
-        tsne_df.write_parquet(ANALYSIS_DIR / "tsne_embedding.parquet")
-    fig32_tsne_embedding(tsne_coords, clubs, names)
 
     print(f"\nDone. Figures in {FIG_DIR}")
